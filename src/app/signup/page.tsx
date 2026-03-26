@@ -1,0 +1,92 @@
+'use client';
+import React, { useState } from 'react';
+import { AuthProvider, useAuth } from '@/lib/auth';
+import { createStorefrontUser } from '@/lib/db';
+import { useRouter } from 'next/navigation';
+import { ShoppingBag, Mail, Lock, User, Eye, EyeOff, Phone } from 'lucide-react';
+import Link from 'next/link';
+
+function SignupContent() {
+  const { refreshUser } = useAuth();
+  const router = useRouter();
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPw, setShowPw] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password.length < 6) { setError('Password must be at least 6 characters.'); return; }
+    setLoading(true); setError('');
+    try {
+      const row = await createStorefrontUser(name, email, password, phone || undefined);
+      refreshUser({ id: row.id, name: row.name, email: row.email, phone: row.phone ?? undefined, loyalty_points: row.loyalty_points });
+      router.push('/');
+    } catch {
+      setError('Email may already be in use. Try signing in.');
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="w-full max-w-md">
+      <div className="bg-card rounded-3xl shadow-xl border border-border p-8">
+        <div className="flex justify-center mb-6">
+          <div className="h-14 w-14 rounded-2xl bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+            <ShoppingBag className="h-7 w-7 text-white"/>
+          </div>
+        </div>
+        <h1 className="text-2xl font-black text-center mb-1">Create account</h1>
+        <p className="text-muted-foreground text-sm text-center mb-6">Join StarMart — shop smarter</p>
+
+        <form onSubmit={handleSignup} className="space-y-4">
+          <div className="relative">
+            <User className="absolute left-3 top-3 h-5 w-5 text-muted-foreground"/>
+            <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Full name" required className="w-full h-11 pl-10 pr-4 rounded-xl border border-border bg-card text-foreground outline-none focus:ring-2 focus:ring-primary text-sm"/>
+          </div>
+          <div className="relative">
+            <Mail className="absolute left-3 top-3 h-5 w-5 text-muted-foreground"/>
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email address" required className="w-full h-11 pl-10 pr-4 rounded-xl border border-border bg-card text-foreground outline-none focus:ring-2 focus:ring-primary text-sm"/>
+          </div>
+          <div className="relative">
+            <Phone className="absolute left-3 top-3 h-5 w-5 text-muted-foreground"/>
+            <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="Phone number (optional)" className="w-full h-11 pl-10 pr-4 rounded-xl border border-border bg-card text-foreground outline-none focus:ring-2 focus:ring-primary text-sm"/>
+          </div>
+          <div className="relative">
+            <Lock className="absolute left-3 top-3 h-5 w-5 text-muted-foreground"/>
+            <input type={showPw ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} placeholder="Password (min 6 chars)" required className="w-full h-11 pl-10 pr-10 rounded-xl border border-border bg-card text-foreground outline-none focus:ring-2 focus:ring-primary text-sm"/>
+            <button type="button" onClick={() => setShowPw(v => !v)} className="absolute right-3 top-3 text-muted-foreground hover:text-foreground">
+              {showPw ? <EyeOff className="h-5 w-5"/> : <Eye className="h-5 w-5"/>}
+            </button>
+          </div>
+          {error && <p className="text-sm text-destructive font-medium">{error}</p>}
+          <button type="submit" disabled={loading} className="w-full h-11 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold transition-all hover:scale-[1.02] disabled:opacity-60">
+            {loading ? 'Creating account...' : 'Create Account'}
+          </button>
+        </form>
+
+        <p className="text-center text-sm text-muted-foreground mt-6">
+          Already have an account?{' '}
+          <Link href="/login" className="text-primary font-semibold hover:underline">Sign in</Link>
+        </p>
+      </div>
+    </div>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <AuthProvider>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4">
+        <Link href="/" className="flex items-center gap-2 mb-8">
+          <div className="h-8 w-8 rounded-lg bg-indigo-600 flex items-center justify-center"><ShoppingBag className="h-5 w-5 text-white"/></div>
+          <span className="font-black text-xl">StarMart</span>
+        </Link>
+        <SignupContent />
+      </div>
+    </AuthProvider>
+  );
+}

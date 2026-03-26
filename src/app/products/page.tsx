@@ -1,6 +1,5 @@
 'use client';
-
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { AuthProvider } from '@/lib/auth';
 import { Navbar } from '@/components/layout/Navbar';
 import { CartDrawer } from '@/components/cart/CartDrawer';
@@ -10,11 +9,11 @@ import { Product } from '@/lib/types';
 import { useCartStore, useToastStore } from '@/lib/store';
 import { SlidersHorizontal, Search } from 'lucide-react';
 
-function StorefrontContent() {
+function ProductsContent() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [categorySearch, setCategorySearch] = useState('');
-  const [isLoadingProducts, setIsLoadingProducts] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [selectedCat, setSelectedCat] = useState('');
   const [sortBy, setSortBy] = useState<'name' | 'price_asc' | 'price_desc'>('name');
@@ -23,9 +22,18 @@ function StorefrontContent() {
   const { addToast, toasts } = useToastStore();
 
   useEffect(() => {
-    const p1 = getProducts().then(setProducts);
-    const p2 = getCategories().then(setCategories);
-    Promise.all([p1, p2]).catch(console.error).finally(() => setIsLoadingProducts(false));
+    const fetchData = async () => {
+      try {
+        const [p, c] = await Promise.all([getProducts(), getCategories()]);
+        setProducts(p);
+        setCategories(c);
+      } catch (err) {
+        console.error('Failed to fetch data:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
   }, []);
 
   const filtered = products
@@ -46,16 +54,15 @@ function StorefrontContent() {
   };
 
   return (
-    <main className="min-h-screen flex flex-col">
+    <main className="min-h-screen flex flex-col bg-background text-foreground">
       <Navbar onCartToggle={() => setIsCartOpen(true)} searchQuery={search} onSearchChange={setSearch} showSearch />
+      
+      <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-10">
+        <div className="mb-10">
+          <h1 className="text-4xl font-black mb-2 tracking-tight">Full Catalogue</h1>
+          <p className="text-muted-foreground text-sm">Discover and filter our complete selection of products</p>
+        </div>
 
-      {/* Hero */}
-      <div className="bg-linear-to-br from-indigo-600 via-indigo-700 to-violet-800 text-white py-16 px-4 text-center">
-        <h1 className="text-4xl sm:text-5xl font-black mb-3 tracking-tight">Shop Everything</h1>
-        <p className="text-indigo-200 text-lg max-w-md mx-auto">Discover our full catalogue of quality products, delivered to your door.</p>
-      </div>
-
-      <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
         {/* Modern Filter Engine UI */}
         <div className="flex flex-col space-y-4 mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -111,18 +118,22 @@ function StorefrontContent() {
           </div>
         </div>
 
-
-        <p className="text-sm text-zinc-500 mb-4">{filtered.length} product{filtered.length !== 1 ? 's' : ''}</p>
-        <ProductGrid products={filtered} onAddToCart={handleAddToCart} isLoading={isLoadingProducts} />
+        {!isLoading && (
+          <p className="text-sm font-bold text-muted-foreground mb-4 uppercase tracking-tighter">
+            {filtered.length} matching product{filtered.length !== 1 ? 's' : ''}
+          </p>
+        )}
+        
+        <ProductGrid products={filtered} onAddToCart={handleAddToCart} isLoading={isLoading} />
       </div>
 
-      <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
-
-      {/* Toasts */}
-      <div className="fixed bottom-4 right-4 z-50 space-y-2 pointer-events-none">
+      <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)}/>
+      
+      {/* Toast Manager */}
+      <div className="fixed bottom-6 right-6 z-50 space-y-3 pointer-events-none">
         {toasts.map(t => (
-          <div key={t.id} className={`px-4 py-3 rounded-xl shadow-xl text-sm font-medium flex items-center gap-3 ${t.type === 'success' ? 'bg-green-600 text-white' : t.type === 'error' ? 'bg-red-600 text-white' : 'bg-zinc-900 text-white'}`}>
-            {t.message}
+          <div key={t.id} className={`px-5 py-4 rounded-2xl shadow-2xl text-sm font-bold flex items-center gap-3 border transform transition-all animate-in slide-in-from-right-full ${t.type === 'success' ? 'bg-green-600/90 backdrop-blur-md text-white border-green-500/50' : t.type === 'error' ? 'bg-red-600/90 backdrop-blur-md text-white border-red-500/50' : 'bg-card/90 backdrop-blur-md text-foreground border-border'}`}>
+             {t.message}
           </div>
         ))}
       </div>
@@ -130,10 +141,7 @@ function StorefrontContent() {
   );
 }
 
-export default function HomePage() {
-  return (
-    <AuthProvider>
-      <StorefrontContent />
-    </AuthProvider>
-  );
+export default function ProductsPage() {
+  return <AuthProvider><ProductsContent /></AuthProvider>;
 }
+
