@@ -1,13 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { AuthProvider } from '@/lib/auth';
+import { useCartStore, useToastStore } from '@/lib/store';
 import { Navbar } from '@/components/layout/Navbar';
 import { CartDrawer } from '@/components/cart/CartDrawer';
 import { ProductGrid } from '@/components/product/ProductGrid';
 import { getProducts, getCategories } from '@/lib/db';
 import { Product } from '@/lib/types';
-import { useCartStore, useToastStore } from '@/lib/store';
 import { SlidersHorizontal, Search } from 'lucide-react';
 
 function StorefrontContent() {
@@ -92,10 +91,10 @@ function StorefrontContent() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 overflow-x-auto pb-2 no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin -mx-4 px-4 sm:mx-0 sm:px-0">
             <button 
               onClick={() => setSelectedCat('')} 
-              className={`px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all border shadow-sm ${!selectedCat ? 'bg-primary text-primary-foreground border-primary' : 'bg-card border-border text-muted-foreground hover:border-primary/50 hover:text-primary'}`}
+              className={`px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap hover:cursor-pointer transition-all border shadow-sm ${!selectedCat ? 'bg-primary text-primary-foreground border-primary' : 'bg-card border-border text-muted-foreground hover:border-primary/50 hover:text-primary'}`}
             >
               All Products
             </button>
@@ -103,7 +102,7 @@ function StorefrontContent() {
               <button 
                 key={c} 
                 onClick={() => setSelectedCat(c)} 
-                className={`px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all border shadow-sm ${selectedCat === c ? 'bg-primary text-primary-foreground border-primary' : 'bg-card border-border text-muted-foreground hover:border-primary/50 hover:text-primary'}`}
+                className={`px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap hover:cursor-pointer transition-all border shadow-sm ${selectedCat === c ? 'bg-primary text-primary-foreground border-primary' : 'bg-card border-border text-muted-foreground hover:border-primary/50 hover:text-primary'}`}
               >
                 {c}
               </button>
@@ -131,9 +130,5 @@ function StorefrontContent() {
 }
 
 export default function HomePage() {
-  return (
-    <AuthProvider>
-      <StorefrontContent />
-    </AuthProvider>
-  );
+  return <StorefrontContent />;
 }

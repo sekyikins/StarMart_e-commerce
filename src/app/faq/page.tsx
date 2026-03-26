@@ -2,7 +2,6 @@
 import React, { useState } from 'react';
 import { Navbar } from '@/components/layout/Navbar';
 import { CartDrawer } from '@/components/cart/CartDrawer';
-import { AuthProvider } from '@/lib/auth';
 import { ChevronDown, HelpCircle, ShieldCheck, Mail } from 'lucide-react';
 
 function FAQContent() {
@@ -93,5 +92,5 @@ function FAQContent() {
 }
 
 export default function FAQPage() {
-  return <AuthProvider><FAQContent /></AuthProvider>;
+  return <FAQContent />;
 }

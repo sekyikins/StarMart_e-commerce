@@ -1,6 +1,5 @@
 'use client';
 import React, { useEffect, useState } from 'react';
-import { AuthProvider } from '@/lib/auth';
 import { Navbar } from '@/components/layout/Navbar';
 import { CartDrawer } from '@/components/cart/CartDrawer';
 import { ProductGrid } from '@/components/product/ProductGrid';
@@ -99,10 +98,10 @@ function ProductsContent() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 overflow-x-auto pb-2 no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin -mx-4 px-4 sm:mx-0 sm:px-0">
             <button 
               onClick={() => setSelectedCat('')} 
-              className={`px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all border shadow-sm ${!selectedCat ? 'bg-primary text-primary-foreground border-primary' : 'bg-card border-border text-muted-foreground hover:border-primary/50 hover:text-primary'}`}
+              className={`px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap hover:cursor-pointer transition-all border shadow-sm ${!selectedCat ? 'bg-primary text-primary-foreground border-primary' : 'bg-card border-border text-muted-foreground hover:border-primary/50 hover:text-primary'}`}
             >
               All Products
             </button>
@@ -110,7 +109,7 @@ function ProductsContent() {
               <button 
                 key={c} 
                 onClick={() => setSelectedCat(c)} 
-                className={`px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all border shadow-sm ${selectedCat === c ? 'bg-primary text-primary-foreground border-primary' : 'bg-card border-border text-muted-foreground hover:border-primary/50 hover:text-primary'}`}
+                className={`px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all hover:cursor-pointer border shadow-sm ${selectedCat === c ? 'bg-primary text-primary-foreground border-primary' : 'bg-card border-border text-muted-foreground hover:border-primary/50 hover:text-primary'}`}
               >
                 {c}
               </button>
@@ -142,6 +141,6 @@ function ProductsContent() {
 }
 
 export default function ProductsPage() {
-  return <AuthProvider><ProductsContent /></AuthProvider>;
+  return <ProductsContent />;
 }
 

@@ -1,17 +1,11 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { getStorefrontUserByEmail, getPersistentCart } from './db';
+import React, { createContext, useContext, useState, useEffect, useSyncExternalStore, startTransition } from 'react';
+import { getStorefrontUserByEmail, getPersistentCart, deleteStorefrontAccount } from './db';
 import { useCartStore } from './store';
 import bcrypt from 'bcryptjs';
 
-interface StorefrontUser {
-  id: string;
-  name: string;
-  email: string;
-  phone?: string;
-  loyalty_points: number;
-}
+import { StorefrontUser } from './types';
 
 interface AuthContextType {
   user: StorefrontUser | null;
@@ -20,23 +14,37 @@ interface AuthContextType {
   refreshUser: (u: StorefrontUser) => void;
   isLoading: boolean;
   syncCart: (userId: string) => Promise<void>;
+  deleteAccount: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
-  user: null, login: async () => false, logout: () => {}, refreshUser: () => {}, isLoading: true, syncCart: async () => {},
+  user: null, login: async () => false, logout: () => {}, refreshUser: () => {}, isLoading: true, syncCart: async () => {}, deleteAccount: async () => {},
 });
+
+// Modern React pattern to track hydration without triggering cascading renders
+const subscribe = () => () => {};
+const getSnapshot = () => true;
+const getServerSnapshot = () => false;
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<StorefrontUser | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  
+  // Track hydration state using the same modern pattern as ThemeToggle
+  const isMounted = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
   useEffect(() => {
+    if (!isMounted) return;
+
     const stored = localStorage.getItem('ec_user');
     if (stored) {
       try { 
         const parsed = JSON.parse(stored);
-        setUser(parsed);
-        // Also sync cart on initial load if logged in
+        // Wrapping in startTransition ensures this doesn't count as a synchronous cascading render
+        startTransition(() => {
+          setUser(parsed);
+        });
+        
+        // Sync cart on initial load
         getPersistentCart(parsed.id).then(items => {
           if (items && items.length > 0) {
             useCartStore.getState().setItems(items);
@@ -46,8 +54,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         localStorage.removeItem('ec_user'); 
       }
     }
-    setIsLoading(false);
-  }, []);
+  }, [isMounted]);
+
+  // Derive loading state from hydration status
+  const isLoading = !isMounted;
 
   const syncCart = async (userId: string) => {
     const items = await getPersistentCart(userId);
@@ -63,7 +73,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (!valid) return false;
     const u: StorefrontUser = {
       id: dbUser.id, name: dbUser.name, email: dbUser.email,
-      phone: dbUser.phone ?? undefined, loyalty_points: dbUser.loyalty_points,
+      phone: dbUser.phone ?? undefined, loyalty_points: dbUser.loyalty_points, created_at: dbUser.created_at,
     };
     setUser(u);
     localStorage.setItem('ec_user', JSON.stringify(u));
@@ -82,8 +92,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     localStorage.setItem('ec_user', JSON.stringify(u));
   };
 
+  const deleteAccount = async () => {
+    if (user) {
+      await deleteStorefrontAccount(user.id);
+      logout();
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, logout, refreshUser, isLoading, syncCart }}>
+    <AuthContext.Provider value={{ user, login, logout, refreshUser, isLoading, syncCart, deleteAccount }}>
       {children}
     </AuthContext.Provider>
   );

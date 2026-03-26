@@ -1,6 +1,6 @@
 'use client';
 import React, { useState } from 'react';
-import { AuthProvider, useAuth } from '@/lib/auth';
+import { useAuth } from '@/lib/auth';
 import { createStorefrontUser } from '@/lib/db';
 import { useRouter } from 'next/navigation';
 import { ShoppingBag, Mail, Lock, User, Eye, EyeOff, Phone } from 'lucide-react';
@@ -23,7 +23,7 @@ function SignupContent() {
     setLoading(true); setError('');
     try {
       const row = await createStorefrontUser(name, email, password, phone || undefined);
-      refreshUser({ id: row.id, name: row.name, email: row.email, phone: row.phone ?? undefined, loyalty_points: row.loyalty_points });
+      refreshUser(row);
       router.push('/');
     } catch {
       setError('Email may already be in use. Try signing in.');
@@ -79,14 +79,12 @@ function SignupContent() {
 
 export default function SignupPage() {
   return (
-    <AuthProvider>
-      <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4">
-        <Link href="/" className="flex items-center gap-2 mb-8">
-          <div className="h-8 w-8 rounded-lg bg-indigo-600 flex items-center justify-center"><ShoppingBag className="h-5 w-5 text-white"/></div>
-          <span className="font-black text-xl">StarMart</span>
-        </Link>
-        <SignupContent />
-      </div>
-    </AuthProvider>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4">
+      <Link href="/" className="flex items-center gap-2 mb-8">
+        <div className="h-8 w-8 rounded-lg bg-indigo-600 flex items-center justify-center"><ShoppingBag className="h-5 w-5 text-white"/></div>
+        <span className="font-black text-xl">StarMart</span>
+      </Link>
+      <SignupContent />
+    </div>
   );
 }

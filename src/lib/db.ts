@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { Product, CartItem } from './types';
+import { Product, CartItem, Order, OrderItem, StorefrontUser } from './types';
 import bcrypt from 'bcryptjs';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -17,10 +17,10 @@ function toProduct(row: any): Product {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function toOrder(row: any) {
+function toOrder(row: any): Order {
   return {
     id: row.id,
-    storefrontUserId: row.e_customer_id,
+    customerId: row.e_customer_id,
     deliveryPointId: row.delivery_point_id,
     deliveryAddress: row.delivery_address,
     totalAmount: Number(row.total_amount),
@@ -33,9 +33,10 @@ function toOrder(row: any) {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function toOrderItem(row: any) {
+function toOrderItem(row: any): OrderItem {
   return {
     id: row.id,
+    orderId: row.order_id,
     productId: row.product_id,
     productName: row.product_name,
     price: Number(row.price),
@@ -86,16 +87,16 @@ export async function getDeliveryPoints() {
 // ─── Auth (storefront users) ──────────────────────────────────────────────────
 export async function getStorefrontUserByEmail(email: string) {
   const { data, error } = await supabase
-    .from('e_customer').select('*').eq('email', email.toLowerCase()).single();
+    .from('e_customer').select('*').eq('email', email.toLowerCase()).maybeSingle();
   if (error) return null;
   return data;
 }
 
-export async function createStorefrontUser(name: string, email: string, password: string, phone?: string) {
+export async function createStorefrontUser(name: string, email: string, password: string, phone?: string): Promise<StorefrontUser> {
   const hash = await bcrypt.hash(password, 10);
   const { data, error } = await supabase
     .from('e_customer')
-    .insert({ name, email: email.toLowerCase(), password_hash: hash, phone: phone ?? null })
+    .insert({ name, email: email.toLowerCase(), password_hash: hash, phone: phone ?? null, loyalty_points: 100 })
     .select().single();
   if (error) throw error;
   return data;
@@ -103,6 +104,11 @@ export async function createStorefrontUser(name: string, email: string, password
 
 export async function updateStorefrontUser(id: string, updates: { name?: string; phone?: string }) {
   await supabase.from('e_customer').update(updates).eq('id', id);
+}
+
+export async function deleteStorefrontAccount(id: string) {
+  // Clear cart and other related data usually handled by ON DELETE CASCADE in DB
+  await supabase.from('e_customer').delete().eq('id', id);
 }
 
 // ─── Orders ───────────────────────────────────────────────────────────────────
@@ -269,7 +275,7 @@ export async function getPersistentCart(userId: string) {
     .from('e_cart')
     .select('items')
     .eq('e_customer_id', userId)
-    .single();
+    .maybeSingle();
   if (error || !data) return [];
   return data.items;
 }

@@ -2,7 +2,6 @@
 import React, { useState } from 'react';
 import { Navbar } from '@/components/layout/Navbar';
 import { CartDrawer } from '@/components/cart/CartDrawer';
-import { AuthProvider } from '@/lib/auth';
 import { Shield, Clock, FileText, Lock } from 'lucide-react';
 
 function TermsContent() {
@@ -12,7 +11,7 @@ function TermsContent() {
     <main className="min-h-screen flex flex-col bg-background text-foreground">
       <Navbar onCartToggle={() => setIsCartOpen(true)} />
       
-      <div className="max-w-4xl mx-auto w-full px-4 py-20">
+      <div className="max-w-4xl mx-auto w-full px-4 pt-10">
         <div className="text-center mb-16">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold uppercase tracking-widest mb-4">
             <Shield className="h-3 w-3" />
@@ -76,7 +75,7 @@ function TermsContent() {
           </div>
         </div>
 
-        <div className="mt-24 pt-12 border-t border-border flex flex-col items-center gap-6 text-center">
+        <div className="mt-12 py-6 border-t border-border flex flex-col items-center gap-6 text-center">
            <div className="h-14 w-14 rounded-2xl bg-primary flex items-center justify-center text-primary-foreground transform rotate-12">
              <Shield className="h-8 w-8" />
            </div>
@@ -90,5 +89,5 @@ function TermsContent() {
 }
 
 export default function TermsPage() {
-  return <AuthProvider><TermsContent /></AuthProvider>;
+  return <TermsContent />;
 }

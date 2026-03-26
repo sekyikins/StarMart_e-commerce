@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useCartStore } from '@/lib/store';
 import { useAuth } from '@/lib/auth';
 import { placeOrder, getDeliveryPoints } from '@/lib/db';
-import { X, Minus, Plus, ShoppingBag, MapPin, CreditCard, Smartphone, CheckCircle2, Package, ChevronRight, Copy, ChevronLeft, ArrowRight, Loader2, Search } from 'lucide-react';
+import { X, Minus, Plus, ShoppingBag, MapPin, CreditCard, Smartphone, CheckCircle2, Package, Copy, ChevronLeft, ArrowRight, Loader2, Search, type LucideIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 interface CartDrawerProps {
@@ -75,7 +75,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
   const canProceedFromDelivery = useCustomAddress ? customAddress.trim().length > 3 : !!selectedDeliveryPoint;
 
   const renderHeader = () => {
-    const titles: Record<CheckoutStep, { icon: any; text: string }> = {
+    const titles: Record<CheckoutStep, { icon: LucideIcon; text: string }> = {
       CART: { icon: ShoppingBag, text: 'Your Cart' },
       DELIVERY: { icon: MapPin, text: 'Delivery' },
       PAYMENT: { icon: CreditCard, text: 'Payment' },
@@ -157,7 +157,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                       <div key={item.productId} className="flex gap-4 p-4 rounded-2xl bg-card border border-border/50 hover:border-primary/20 transition-all group">
                         <div className="h-20 w-20 rounded-2xl bg-muted flex items-center justify-center text-muted-foreground font-black text-2xl shrink-0 uppercase shadow-inner overflow-hidden relative">
                           {item.productName.charAt(0)}
-                          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent" />
+                          <div className="absolute inset-0 bg-linear-to-br from-primary/5 to-transparent" />
                         </div>
                         <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
                           <div className="flex justify-between items-start gap-2">
@@ -252,7 +252,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                
                {/* Dummy Card Info (Visible if CARD is selected) */}
                {paymentMethod === 'CARD' && (
-                 <div className="bg-gradient-to-br from-indigo-600 to-indigo-800 rounded-3xl p-6 text-white shadow-2xl relative overflow-hidden animate-in slide-in-from-bottom-4 duration-500">
+                 <div className="bg-linear-to-br from-indigo-600 to-indigo-800 rounded-3xl p-6 text-white shadow-2xl relative overflow-hidden animate-in slide-in-from-bottom-4 duration-500">
                     <div className="absolute right-[-20px] top-[-20px] h-32 w-32 rounded-full bg-white/10 blur-3xl" />
                     <div className="flex justify-between items-start mb-10">
                        <CreditCard className="h-8 w-8 text-white/50" />
@@ -333,19 +333,19 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
           {/* 5. SUCCESS PAGE */}
           {step === 'SUCCESS' && (
             <div className="min-h-full flex flex-col items-center justify-center p-8 animate-in zoom-in-95 duration-700">
-               <div className="relative mb-10">
-                  <div className="h-32 w-32 rounded-[3.5rem] bg-success/10 border-4 border-success/20 flex items-center justify-center animate-bounce shadow-special-success">
+               <div className="relative mb-5">
+                  <div className="h-30 w-30 rounded-[3.5rem] bg-success/10 border-4 border-success/20 flex items-center justify-center animate-bounce shadow-special-success">
                     <CheckCircle2 className="h-16 w-16 text-success"/>
                   </div>
                   <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full bg-success text-white font-black text-[10px] uppercase shadow-lg ring-4 ring-background">Verified</div>
                </div>
                
-               <div className="text-center space-y-4 mb-12 px-6">
+               <div className="text-center space-y-4 mb-10 px-6">
                   <h2 className="text-4xl font-black text-foreground tracking-tighter leading-none">Order Secure!</h2>
                   <p className="text-muted-foreground text-sm font-medium leading-relaxed">Prepare for arrival. We&apos;ve sent the tracking details to your primary email address.</p>
                </div>
 
-               <div className="w-full bg-card rounded-[2.5rem] p-8 border-2 border-border/50 group cursor-pointer active:scale-[0.98] transition-all relative overflow-hidden shadow-2xl hover:border-primary/50" onClick={copyToClipboard}>
+               <div className="w-full bg-card rounded-[2.5rem] p-4 border-2 border-border/50 group cursor-pointer active:scale-[0.98] transition-all relative overflow-hidden shadow-2xl hover:border-primary/50" onClick={copyToClipboard}>
                  <div className="flex flex-col items-center gap-2 z-10 relative">
                     <span className="text-[10px] font-black text-muted-foreground/50 uppercase tracking-[0.4em]">Tracking Reference</span>
                     <div className="flex items-center gap-4 py-4">

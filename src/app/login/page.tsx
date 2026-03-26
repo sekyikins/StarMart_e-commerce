@@ -1,9 +1,8 @@
 'use client';
 import React, { useState } from 'react';
-import { AuthProvider, useAuth } from '@/lib/auth';
-import { createStorefrontUser } from '@/lib/db';
+import { useAuth } from '@/lib/auth';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ShoppingBag, Mail, Lock, User, Eye, EyeOff, Phone } from 'lucide-react';
+import { ShoppingBag, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
 
 function LoginContent() {
@@ -68,14 +67,12 @@ function LoginContent() {
 
 export default function LoginPage() {
   return (
-    <AuthProvider>
-      <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4">
-        <Link href="/" className="flex items-center gap-2 mb-8">
-          <div className="h-8 w-8 rounded-lg bg-indigo-600 flex items-center justify-center"><ShoppingBag className="h-5 w-5 text-white"/></div>
-          <span className="font-black text-xl">StarMart</span>
-        </Link>
-        <React.Suspense><LoginContent /></React.Suspense>
-      </div>
-    </AuthProvider>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4">
+      <Link href="/" className="flex items-center gap-2 mb-8">
+        <div className="h-8 w-8 rounded-lg bg-indigo-600 flex items-center justify-center"><ShoppingBag className="h-5 w-5 text-white"/></div>
+        <span className="font-black text-xl">StarMart</span>
+      </Link>
+      <React.Suspense><LoginContent /></React.Suspense>
+    </div>
   );
 }

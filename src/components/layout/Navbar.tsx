@@ -20,12 +20,12 @@ export const Navbar: React.FC<NavbarProps> = ({
   onSearchChange,
   showSearch = true,
 }) => {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const itemCount = useCartStore(s => s.getItemCount());
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 
   return (
-    <nav className="sticky top-0 z-40 w-full border-b border-[var(--border)] bg-[var(--background)]/90 backdrop-blur-xl">
+    <nav className="sticky top-0 z-40 w-full border-b-2 border-border/80 bg-background/90 backdrop-blur-xl shadow-2xl shadow-indigo-500/10">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center gap-4">
 
@@ -45,7 +45,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 placeholder="Search products, brands, categories..."
                 value={searchQuery}
                 onChange={e => onSearchChange?.(e.target.value)}
-                className="w-full h-10 px-4 rounded-full bg-[var(--muted)] border border-[var(--border)] text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 text-sm transition-all"
+                className="w-full h-10 px-4 rounded-full bg-(--muted) border border-(--border) text-(--foreground) placeholder:text-(--muted-foreground) focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 text-sm transition-all"
               />
             </div>
           )}
@@ -57,7 +57,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <div className="hidden sm:flex items-center gap-1">
               <Link
                 href="/products"
-                className="px-3 py-1.5 text-sm font-medium text-[var(--muted-foreground)] hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors rounded-lg hover:bg-[var(--muted)]"
+                className="px-3 py-1.5 text-sm font-medium text-(--muted-foreground) hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors rounded-lg hover:bg-(--muted)"
               >
                 Products
               </Link>
@@ -66,31 +66,26 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <>
                   <Link
                     href="/orders"
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-[var(--muted-foreground)] hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors rounded-lg hover:bg-[var(--muted)]"
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-(--muted-foreground) hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors rounded-lg hover:bg-(--muted)"
                   >
                     <Package className="h-4 w-4" />
                     Orders
                   </Link>
                   <Link
                     href="/profile"
-                    className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-[var(--muted-foreground)] hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors rounded-lg hover:bg-[var(--muted)]"
+                    className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-(--muted-foreground) hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors rounded-lg hover:bg-(--muted)"
                   >
                     <div className="h-6 w-6 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-xs">
                       {user.name.charAt(0)}
                     </div>
                     {user.name.split(' ')[0]}
                   </Link>
-                  <button
-                    onClick={logout}
-                    className="px-3 py-1.5 text-sm font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors rounded-lg"
-                  >
-                    Logout
-                  </button>
+
                 </>
               ) : (
                 <Link
                   href="/login"
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-[var(--muted-foreground)] hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors rounded-lg hover:bg-[var(--muted)]"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-(--muted-foreground) hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors rounded-lg hover:bg-(--muted)"
                 >
                   <User className="h-4 w-4" />
                   Sign In
@@ -104,12 +99,12 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Cart button */}
             <button
               onClick={onCartToggle}
-              className="relative flex items-center gap-2 h-10 px-4 rounded-full bg-[var(--foreground)] text-[var(--background)] text-sm font-bold transition-all hover:opacity-85 active:scale-95"
+              className="relative flex items-center gap-2 h-10 px-4 rounded-full bg-(--foreground) text-(--background) text-sm hover:cursor-pointer font-bold transition-all hover:opacity-85 active:scale-95"
             >
               <ShoppingBag className="h-4 w-4" />
               <span className="hidden sm:block">Cart</span>
               {itemCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 h-5 min-w-[20px] px-1 rounded-full bg-indigo-600 text-white text-[10px] font-bold border-2 border-[var(--background)] flex items-center justify-center">
+                <span className="absolute -top-1.5 -right-1.5 h-5 min-w-[20px] px-1 rounded-full bg-indigo-600 text-white text-[10px] font-bold border-2 border-(--background) flex items-center justify-center">
                   {itemCount}
                 </span>
               )}
@@ -118,7 +113,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Mobile menu toggle */}
             <button
               onClick={() => setMobileMenuOpen(v => !v)}
-              className="sm:hidden p-2 rounded-lg text-[var(--muted-foreground)] hover:bg-[var(--muted)] transition-colors"
+              className="sm:hidden p-2 rounded-lg text-(--muted-foreground) hover:bg-(--muted) transition-colors"
             >
               {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
@@ -133,7 +128,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               placeholder="Search products..."
               value={searchQuery}
               onChange={e => onSearchChange?.(e.target.value)}
-              className="w-full h-10 px-4 rounded-full bg-[var(--muted)] border border-[var(--border)] text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] outline-none text-sm focus:border-indigo-500 transition-all"
+              className="w-full h-10 px-4 rounded-full bg-(--muted) border border-(--border) text-(--foreground) placeholder:text-(--muted-foreground) outline-none text-sm focus:border-indigo-500 transition-all"
             />
           </div>
         )}
@@ -141,16 +136,16 @@ export const Navbar: React.FC<NavbarProps> = ({
 
       {/* Mobile Menu */}
       {mobileMenuOpen && (
-        <div className="sm:hidden border-t border-[var(--border)] bg-[var(--card)] px-4 py-3 space-y-1">
-          <Link href="/products" onClick={() => setMobileMenuOpen(false)} className="block py-2.5 px-3 rounded-lg text-sm font-medium hover:bg-[var(--muted)] transition-colors">Products</Link>
+        <div className="sm:hidden border-t border-(--border) bg-(--card) px-4 py-3 space-y-1">
+          <Link href="/products" onClick={() => setMobileMenuOpen(false)} className="block py-2.5 px-3 rounded-lg text-sm font-medium hover:bg-(--muted) transition-colors">Products</Link>
           {user ? (
             <>
-              <Link href="/orders" onClick={() => setMobileMenuOpen(false)} className="block py-2.5 px-3 rounded-lg text-sm font-medium hover:bg-[var(--muted)] transition-colors">My Orders</Link>
-              <Link href="/profile" onClick={() => setMobileMenuOpen(false)} className="block py-2.5 px-3 rounded-lg text-sm font-medium hover:bg-[var(--muted)] transition-colors">Profile</Link>
-              <button onClick={() => { logout(); setMobileMenuOpen(false); }} className="block w-full text-left py-2.5 px-3 rounded-lg text-sm font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors">Logout</button>
+              <Link href="/orders" onClick={() => setMobileMenuOpen(false)} className="block py-2.5 px-3 rounded-lg text-sm font-medium hover:bg-(--muted) transition-colors">My Orders</Link>
+              <Link href="/profile" onClick={() => setMobileMenuOpen(false)} className="block py-2.5 px-3 rounded-lg text-sm font-medium hover:bg-(--muted) transition-colors">Profile</Link>
+
             </>
           ) : (
-            <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="block py-2.5 px-3 rounded-lg text-sm font-medium hover:bg-[var(--muted)] transition-colors">Sign In</Link>
+            <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="block py-2.5 px-3 rounded-lg text-sm font-medium hover:bg-(--muted) transition-colors">Sign In</Link>
           )}
         </div>
       )}

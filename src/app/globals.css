@@ -35,7 +35,7 @@
 /* ─── Light ─── */
 :root {
   color-scheme: light;
-  --background:          #f8f8fb;
+  --background:          #f1f5f9; /* slate-100 */
   --foreground:          #0f0f1a;
   --card:                #ffffff;
   --card-foreground:     #0f0f1a;
@@ -45,13 +45,13 @@
   --primary-foreground:  #ffffff;
   --secondary:           #eef2ff; /* indigo-50  */
   --secondary-foreground:#3730a3; /* indigo-800 */
-  --muted:               #f1f5f9;
+  --muted:               #e2e8f0;
   --muted-foreground:    #64748b;
   --accent:              #ede9fe; /* violet-100 */
   --accent-foreground:   #4338ca;
   --destructive:         #ef4444;
   --destructive-foreground: #ffffff;
-  --border:              #e2e8f0;
+  --border:              #cbd5e1; /* slate-300 */
   --input:               #f1f5f9;
   --ring:                #6366f1;
   --success:             #22c55e;
@@ -104,6 +104,7 @@ body {
   color: var(--foreground);
   transition: background-color 0.2s ease, color 0.2s ease;
   min-height: 100vh;
+  cursor: default;
 }
 
 /* Subtle ambient gradient behind content */
@@ -113,8 +114,8 @@ body::before {
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(ellipse at 10% 0%, rgba(99,102,241,0.08) 0%, transparent 55%),
-    radial-gradient(ellipse at 90% 100%, rgba(124,58,237,0.06) 0%, transparent 55%);
+    radial-gradient(ellipse at 10% 0%, rgba(99,102,241,0.15) 0%, transparent 55%),
+    radial-gradient(ellipse at 90% 100%, rgba(124,58,237,0.12) 0%, transparent 55%);
   z-index: -1;
 }
 
@@ -136,8 +137,16 @@ body::before {
   border: 1px solid rgba(255,255,255,0.08);
 }
 
-/* Scrollbar */
-::-webkit-scrollbar { width: 6px; }
+/* Scrollbar — global vertical */
+::-webkit-scrollbar { width: 3px; height: 3px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 9999px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--muted-foreground); }
+
+/* Thin scrollbar for horizontal scroll containers (e.g. category chips) */
+.scrollbar-thin::-webkit-scrollbar { height: 3px; }
+.scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+.scrollbar-thin::-webkit-scrollbar-thumb { background: var(--border); border-radius: 9999px; }
+.scrollbar-thin::-webkit-scrollbar-thumb:hover { background: var(--muted-foreground); }
+/* Firefox */
+.scrollbar-thin { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }

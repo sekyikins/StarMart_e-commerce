@@ -1,14 +1,16 @@
 'use client';
-import React, { useEffect, useState } from 'react';
-import { AuthProvider, useAuth } from '@/lib/auth';
-import { getOrdersByUser } from '@/lib/db';
+import React, { useState } from 'react';
+import { useAuth } from '@/lib/auth';
+import { getOrdersByUser, cancelOrder } from '@/lib/db';
 import { Navbar } from '@/components/layout/Navbar';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { CartDrawer } from '@/components/cart/CartDrawer';
 import { useRouter } from 'next/navigation';
-import { Package, Clock, CheckCircle2, XCircle, Truck, AlertCircle, CreditCard, MapPin } from 'lucide-react';
+import { Package, Clock, CheckCircle2, XCircle, Truck, AlertCircle, CreditCard, MapPin, Wifi, WifiOff } from 'lucide-react';
 import Link from 'next/link';
-import { useCallback } from 'react';
+import { useToastStore } from '@/lib/store';
+import { Order, OrderItem } from '@/lib/types';
+import { useRealtimeTable, ConnectionStatus } from '@/hooks/useRealtimeTable';
 
 const STATUS_META: Record<string, { label: string; color: string; Icon: React.ElementType; desc: string }> = {
   PENDING:   { label: 'Pending',    color: 'text-yellow-600 bg-yellow-50 dark:bg-yellow-950/30 border-yellow-200',  Icon: Clock,        desc: 'Waiting for staff to confirm your order.' },
@@ -18,9 +20,20 @@ const STATUS_META: Record<string, { label: string; color: string; Icon: React.El
   CANCELLED: { label: 'Cancelled',  color: 'text-red-600 bg-red-50 dark:bg-red-950/30 border-red-200',             Icon: XCircle,       desc: 'This order was cancelled and inventory has been restored.' },
 };
 
-import { Order, OrderItem } from '@/lib/types';
-import { cancelOrder } from '@/lib/db';
-import { useToastStore } from '@/lib/store';
+function ConnectionPill({ status }: { status: ConnectionStatus }) {
+  const map = {
+    connected:    { icon: Wifi,    label: 'Live',       cls: 'text-green-600 bg-green-50 dark:bg-green-950/30 border-green-200' },
+    connecting:   { icon: Wifi,    label: 'Syncing…',   cls: 'text-yellow-600 bg-yellow-50 dark:bg-yellow-950/30 border-yellow-200' },
+    disconnected: { icon: WifiOff, label: 'Offline',    cls: 'text-red-600 bg-red-50 dark:bg-red-950/30 border-red-200' },
+    error:        { icon: WifiOff, label: 'Error',      cls: 'text-red-600 bg-red-50 dark:bg-red-950/30 border-red-200' },
+  }[status];
+  const Icon = map.icon;
+  return (
+    <span className={`inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border ${map.cls}`}>
+      <Icon className="h-3 w-3" />{map.label}
+    </span>
+  );
+}
 
 function OrderCard({ order, onUpdate }: { order: Order; onUpdate: () => void }) {
   const meta = STATUS_META[order.status] ?? { label: order.status, color: '', Icon: AlertCircle, desc: '' };
@@ -33,7 +46,7 @@ function OrderCard({ order, onUpdate }: { order: Order; onUpdate: () => void }) 
     try {
       await cancelOrder(order.id);
       addToast('Order cancelled successfully', 'success');
-      onUpdate();
+      onUpdate(); // Realtime will also reflect this automatically
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to cancel order';
       addToast(message, 'error');
@@ -93,7 +106,7 @@ function OrderCard({ order, onUpdate }: { order: Order; onUpdate: () => void }) 
           </div>
         ))}
       </div>
-      <div className="px-5 pb-5 pt-2 border-t border-border/50 text-[10px] text-muted-foreground flex items-center gap-3 font-bold uppercase tracking-widest">
+      <div className="px-5 pb-5 pt-2 border-t border-border/50 text-[10px] text-muted-foreground flex items-center gap-3 font-bold uppercase tracking-widest flex-wrap">
         <span className="flex items-center gap-1"><CreditCard className="h-3 w-3" />{order.paymentMethod?.replace(/_/g,' ')}</span>
         <span>·</span>
         <span className="flex items-center gap-1 flex-1 truncate"><MapPin className="h-3 w-3" />{order.deliveryAddress || 'Pick-up Point'}</span>
@@ -107,53 +120,51 @@ function OrderCard({ order, onUpdate }: { order: Order; onUpdate: () => void }) 
 function OrdersContent() {
   const { user, isLoading: authLoading } = useAuth();
   const router = useRouter();
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
   const [isCartOpen, setIsCartOpen] = useState(false);
 
-  const fetchOrders = useCallback(async () => {
-    if (user) {
-      try {
-        const data = await getOrdersByUser(user.id);
-        setOrders(data);
-      } finally {
-        setLoading(false);
-      }
-    }
-  }, [user]);
+  // Stable fetcher — created once user becomes available
+  const fetcher = React.useCallback(
+    () => (user ? getOrdersByUser(user.id) : Promise.resolve([])),
+    [user]
+  );
 
-  useEffect(() => {
-    if (!authLoading && !user) { router.push('/login?next=/orders'); return; }
-    if (user) fetchOrders();
-  }, [user, authLoading, router, fetchOrders]);
+  const { data: orders, isLoading, connectionStatus, refetch } = useRealtimeTable<Order>({
+    table: 'online_orders',
+    initialData: [],
+    fetcher,
+    filter: user ? { column: 'e_customer_id', value: user.id } : undefined,
+    disabled: !user,
+    // online_orders rows are fetched with a join (order items) and a camelCase mapper.
+    // Raw realtime payloads are snake_case without joins, so we must refetch on any change.
+    refetchOnChange: true,
+  });
+
+  React.useEffect(() => {
+    if (!authLoading && !user) router.push('/login?next=/orders');
+  }, [user, authLoading, router]);
 
   return (
     <main className="min-h-screen flex flex-col bg-background">
       <Navbar onCartToggle={() => setIsCartOpen(true)} />
       <div className="max-w-3xl mx-auto w-full px-4 py-10">
-        <h1 className="text-3xl font-black mb-2 text-foreground">My Orders</h1>
-        <p className="text-muted-foreground text-sm mb-8">Track and review your recent orders</p>
-        {loading ? (
+        <div className="flex items-center justify-between mb-2">
+          <h1 className="text-3xl font-black text-foreground">My Orders</h1>
+          <ConnectionPill status={connectionStatus} />
+        </div>
+        <p className="text-muted-foreground text-sm mb-8">Track and review your recent orders — updates arrive instantly.</p>
+
+        {isLoading ? (
           <div className="space-y-4">
-             {[...Array(3)].map((_, i) => (
-               <div key={i} className="bg-card rounded-2xl border border-border overflow-hidden p-6 space-y-4 shadow-sm animate-pulse">
-                  <div className="flex justify-between items-start">
-                     <div className="space-y-2">
-                        <Skeleton className="h-3 w-20" />
-                        <Skeleton className="h-5 w-32" />
-                     </div>
-                     <div className="flex gap-2 items-center">
-                        <Skeleton className="h-6 w-16 rounded-full" />
-                        <Skeleton className="h-8 w-12" />
-                     </div>
-                  </div>
-                  <Skeleton className="h-8 w-full rounded-lg" />
-                  <div className="space-y-2 pt-2">
-                     <Skeleton className="h-4 w-full" />
-                     <Skeleton className="h-4 w-full" />
-                  </div>
-               </div>
-             ))}
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="bg-card rounded-2xl border border-border overflow-hidden p-6 space-y-4 shadow-sm animate-pulse">
+                <div className="flex justify-between items-start">
+                  <div className="space-y-2"><Skeleton className="h-3 w-20" /><Skeleton className="h-5 w-32" /></div>
+                  <div className="flex gap-2 items-center"><Skeleton className="h-6 w-16 rounded-full" /><Skeleton className="h-8 w-12" /></div>
+                </div>
+                <Skeleton className="h-8 w-full rounded-lg" />
+                <div className="space-y-2 pt-2"><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-full" /></div>
+              </div>
+            ))}
           </div>
         ) : orders.length === 0 ? (
           <div className="text-center py-20 bg-card rounded-3xl border border-border border-dashed">
@@ -163,14 +174,13 @@ function OrdersContent() {
           </div>
         ) : (
           <div className="space-y-6">
-            {orders.map(o => <OrderCard key={o.id} order={o} onUpdate={fetchOrders}/>)}
+            {orders.map(o => <OrderCard key={o.id} order={o} onUpdate={refetch}/>)}
           </div>
         )}
 
-        {/* Links */}
         <div className="mt-12 flex flex-col sm:flex-row justify-center items-center gap-4 sm:gap-8 pb-10 grayscale opacity-50">
-           <Link href="/terms" className="text-xs font-bold text-muted-foreground hover:text-foreground">TERMS & CONDITIONS</Link>
-           <Link href="/faq" className="text-xs font-bold text-muted-foreground hover:text-foreground">REFUND POLICY & FAQS</Link>
+          <Link href="/terms" className="text-xs font-bold text-muted-foreground hover:text-foreground">TERMS &amp; CONDITIONS</Link>
+          <Link href="/faq" className="text-xs font-bold text-muted-foreground hover:text-foreground">REFUND POLICY &amp; FAQS</Link>
         </div>
       </div>
       <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)}/>
@@ -179,7 +189,5 @@ function OrdersContent() {
 }
 
 export default function OrdersPage() {
-  return (
-    <AuthProvider><OrdersContent /></AuthProvider>
-  );
+  return <OrdersContent />;
 }

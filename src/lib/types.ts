@@ -55,6 +55,16 @@ export interface Order {
   items: OrderItem[];
   totalAmount: number;
   status: 'PENDING' | 'CONFIRMED' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';
-  paymentMethod: 'ONLINE_PAYMENT' | 'PAY_ON_DELIVERY' | 'MOBILE_MONEY' | 'CASH_ON_DELIVERY';
+  paymentMethod: 'ONLINE_PAYMENT' | 'PAY_ON_DELIVERY' | 'MOBILE_MONEY' | 'CASH_ON_DELIVERY' | 'CARD' | 'CASH';
+  paymentReference?: string;
   createdAt: string;
+}
+
+export interface StorefrontUser {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  loyalty_points: number;
+  created_at: string;
 }
