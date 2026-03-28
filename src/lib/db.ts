@@ -1,6 +1,30 @@
 import { supabase } from './supabase';
-import { Product, CartItem, Order, OrderItem, StorefrontUser } from './types';
+import { Product, CartItem, Order, OrderItem, StorefrontUser, StoreSettings } from './types';
 import bcrypt from 'bcryptjs';
+
+export async function getStoreSettings(): Promise<StoreSettings> {
+  const { data, error } = await supabase.from('store_settings').select('*').limit(1).single();
+  if (error) {
+    return {
+      id: 'default',
+      storeName: 'StarMart',
+      currency: 'USD',
+      taxRate: 0,
+      receiptHeader: null,
+      receiptFooter: null,
+      updatedAt: new Date().toISOString()
+    };
+  }
+  return {
+    id: data.id,
+    storeName: data.store_name,
+    currency: data.currency,
+    taxRate: Number(data.tax_rate),
+    receiptHeader: data.receipt_header,
+    receiptFooter: data.receipt_footer,
+    updatedAt: data.updated_at
+  };
+}
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function toProduct(row: any): Product {
@@ -12,7 +36,7 @@ function toProduct(row: any): Product {
     quantity: row.quantity,
     barcode: row.barcode,
     description: row.description ?? undefined,
-    imageUrl: row.image_url ?? undefined,
+    imageUrl: row.product_images?.[0]?.image_url || row.image_url || undefined,
   };
 }
 
@@ -57,14 +81,14 @@ function toDeliveryPoint(row: any) {
 
 // ─── Products (shared with POS) ───────────────────────────────────────────────
 export async function getProducts(): Promise<Product[]> {
-  const { data, error } = await supabase.from('products').select('*').order('name');
+  const { data, error } = await supabase.from('products').select('*, product_images(image_url)').order('name');
   if (error) throw error;
   return (data ?? []).map(toProduct);
 }
 
 export async function getProductsByCategory(category: string): Promise<Product[]> {
   const { data, error } = await supabase
-    .from('products').select('*').eq('category', category).order('name');
+    .from('products').select('*, product_images(image_url)').eq('category', category).order('name');
   if (error) throw error;
   return (data ?? []).map(toProduct);
 }
@@ -175,6 +199,8 @@ export async function placeOrder(orderData: {
       
       if (lastDate !== today) {
         newPoints += 50;
+      } else {
+        newPoints += 10;
       }
 
       await supabase.from('e_customer').update({ 

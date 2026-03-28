@@ -3,6 +3,8 @@ import { Product } from '@/lib/types';
 import { ShoppingCart, Tag, Plus } from 'lucide-react';
 import { Skeleton } from '@/components/ui/Skeleton';
 import Link from 'next/link';
+import Image from 'next/image';
+import { useSettingsStore } from '@/lib/store';
 
 interface ProductGridProps {
   products: Product[];
@@ -11,6 +13,7 @@ interface ProductGridProps {
 }
 
 export const ProductGrid: React.FC<ProductGridProps> = ({ products, onAddToCart, isLoading }) => {
+  const { currencySymbol } = useSettingsStore();
   if (isLoading) {
     return (
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-5">
@@ -47,11 +50,20 @@ export const ProductGrid: React.FC<ProductGridProps> = ({ products, onAddToCart,
             {/* Clickable image area → detail page */}
             <Link href={`/products/${product.id}`} className="block">
               <div className={`aspect-square relative overflow-hidden flex items-center justify-center text-5xl font-black select-none ${outOfStock ? 'bg-muted text-muted-foreground/30' : 'bg-primary/5 text-primary/20 group-hover:bg-primary/10'} transition-colors duration-300`}>
-                {product.name.charAt(0)}
+                {product.imageUrl ? (
+                  <Image 
+                    src={product.imageUrl} 
+                    alt={product.name} 
+                    fill
+                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
+                  />
+                ) : (
+                  product.name.charAt(0)
+                )}
                 {/* Subtle hover overlay */}
                 <div className="absolute inset-0 bg-linear-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 {outOfStock && (
-                  <div className="absolute inset-0 bg-background/60 flex items-center justify-center backdrop-blur-[2px]">
+                  <div className="absolute inset-0 bg-background/60 flex items-center justify-center backdrop-blur-[2px] z-10">
                     <span className="text-[10px] font-bold text-muted-foreground border border-border bg-card px-2 py-0.5 rounded uppercase tracking-tighter">Out of Stock</span>
                   </div>
                 )}
@@ -71,7 +83,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({ products, onAddToCart,
               )}
 
               <div className="flex items-center justify-between mt-3 pt-3 border-t border-border gap-2">
-                <span className="text-xl font-black text-foreground">${product.price.toFixed(2)}</span>
+                <span className="text-xl font-black text-foreground">{currencySymbol}{product.price.toFixed(2)}</span>
                 {/* Conspicuous "Add to Cart" button */}
                 <button
                   onClick={(e) => { e.preventDefault(); onAddToCart(product); }}

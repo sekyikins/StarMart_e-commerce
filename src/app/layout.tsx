@@ -5,26 +5,29 @@ import { ThemeProvider } from '@/components/ui/ThemeProvider';
 
 const inter = Inter({ subsets: ['latin'] });
 
-export const metadata: Metadata = {
-  title: { default: 'StarMart', template: '%s | StarMart' },
-  description: 'Shop online with StarMart — wide selection, fast delivery, best prices.',
-  icons: {
-    icon: '/favicon.png',
-    shortcut: '/favicon.png',
-    apple: '/favicon.png',
-  },
-};
+import { getStoreSettings } from '@/lib/db';
+
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getStoreSettings();
+  return {
+    title: { default: settings.storeName, template: `%s | ${settings.storeName}` },
+    description: `Shop online with ${settings.storeName} — wide selection, fast delivery, best prices.`,
+  };
+}
 
 import { AuthProvider } from '@/lib/auth';
+import { SettingsInitializer } from '@/components/layout/SettingsInitializer';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.className} antialiased`} suppressHydrationWarning>
         <AuthProvider>
-          <ThemeProvider>
-            {children}
-          </ThemeProvider>
+          <SettingsInitializer>
+            <ThemeProvider>
+              {children}
+            </ThemeProvider>
+          </SettingsInitializer>
         </AuthProvider>
       </body>
     </html>

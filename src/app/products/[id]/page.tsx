@@ -6,13 +6,14 @@ import { Navbar } from '@/components/layout/Navbar';
 import { CartDrawer } from '@/components/cart/CartDrawer';
 import { getProducts } from '@/lib/db';
 import { Product } from '@/lib/types';
-import { useCartStore, useToastStore } from '@/lib/store';
+import { useCartStore, useToastStore, useSettingsStore } from '@/lib/store';
 import { Skeleton } from '@/components/ui/Skeleton';
 import {
   ShoppingCart, ArrowLeft, Package, Tag, AlertTriangle,
   CheckCircle2, Minus, Plus, Star, Truck, ShieldCheck, RotateCcw
 } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 // ── Colour palette for product placeholder ─────────────────────────
 const PALETTE = [
@@ -126,11 +127,22 @@ function ProductDetailContent() {
               {/* Decorative circles */}
               <div className="absolute -top-12 -right-12 h-48 w-48 rounded-full bg-white/10 blur-2xl" />
               <div className="absolute -bottom-8 -left-8 h-32 w-32 rounded-full bg-white/10 blur-xl" />
-              <span className="text-[8rem] font-black text-white/30 select-none z-10 leading-none">
-                {product.name.charAt(0)}
-              </span>
+              
+              {product.imageUrl ? (
+                <Image 
+                  src={product.imageUrl} 
+                  alt={product.name} 
+                  fill
+                  className="absolute inset-0 w-full h-full object-cover z-0" 
+                />
+              ) : (
+                <span className="text-[8rem] font-black text-white/30 select-none z-10 leading-none">
+                  {product.name.charAt(0)}
+                </span>
+              )}
+
               {outOfStock && (
-                <div className="absolute inset-0 bg-background/70 backdrop-blur-md flex items-center justify-center rounded-[2.5rem]">
+                <div className="absolute inset-0 bg-background/70 backdrop-blur-md flex items-center justify-center rounded-[2.5rem] z-20">
                   <div className="text-center">
                     <AlertTriangle className="h-12 w-12 text-destructive mx-auto mb-2" />
                     <p className="font-black text-xl text-destructive">Out of Stock</p>
@@ -182,7 +194,7 @@ function ProductDetailContent() {
 
             {/* Price */}
             <div className="flex items-baseline gap-3 mb-6">
-              <span className="text-5xl font-black text-foreground">${product.price.toFixed(2)}</span>
+              <span className="text-5xl font-black text-foreground">{useSettingsStore.getState().currencySymbol}{product.price.toFixed(2)}</span>
             </div>
 
             {/* Stock info */}
@@ -217,7 +229,7 @@ function ProductDetailContent() {
                   </button>
                 </div>
                 <span className="text-sm text-muted-foreground font-bold">
-                  = <span className="text-foreground font-black">${(product.price * qty).toFixed(2)}</span>
+                  = <span className="text-foreground font-black">{useSettingsStore.getState().currencySymbol}{(product.price * qty).toFixed(2)}</span>
                 </span>
               </div>
             )}
@@ -261,10 +273,19 @@ function ProductDetailContent() {
                 return (
                   <div key={p.id} className="bg-card rounded-2xl border border-border overflow-hidden group hover:border-primary/40 hover:shadow-lg transition-all duration-300 flex flex-col">
                     <Link href={`/products/${p.id}`} className="block">
-                      <div className={`aspect-square bg-linear-to-br ${g} flex items-center justify-center text-4xl font-black text-white/20 relative`}>
-                        {p.name.charAt(0)}
+                      <div className={`aspect-square bg-linear-to-br ${g} flex items-center justify-center text-4xl font-black text-white/20 relative overflow-hidden`}>
+                        {p.imageUrl ? (
+                          <Image 
+                            src={p.imageUrl} 
+                            alt={p.name} 
+                            fill
+                            className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
+                          />
+                        ) : (
+                          p.name.charAt(0)
+                        )}
                         {oos && (
-                          <div className="absolute inset-0 bg-background/60 backdrop-blur-sm flex items-center justify-center">
+                          <div className="absolute inset-0 bg-background/60 backdrop-blur-sm flex items-center justify-center z-10">
                             <span className="text-[10px] font-black text-muted-foreground border border-border bg-card px-2 py-0.5 rounded uppercase">Out of Stock</span>
                           </div>
                         )}
@@ -276,7 +297,7 @@ function ProductDetailContent() {
                         <h3 className="text-xs font-bold text-foreground line-clamp-2 flex-1 mb-2 hover:text-primary transition-colors">{p.name}</h3>
                       </Link>
                       <div className="flex items-center justify-between mt-auto pt-2 border-t border-border gap-1">
-                        <span className="text-base font-black">${p.price.toFixed(2)}</span>
+                        <span className="text-base font-black">{useSettingsStore.getState().currencySymbol}{p.price.toFixed(2)}</span>
                         <button
                           onClick={() => handleRelatedAdd(p)}
                           disabled={oos}

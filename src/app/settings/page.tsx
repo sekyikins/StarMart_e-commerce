@@ -70,19 +70,41 @@ function SettingsContent() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         
         {/* Navigation / Sections */}
-        <div className="space-y-2">
-          <button className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-card border-2 border-primary shadow-xl shadow-indigo-500/10 text-primary font-black transition-all">
-            <User className="h-5 w-5" />
-            Personal Info
-          </button>
-          <button className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-muted-foreground font-bold hover:bg-card transition-all">
-            <Shield className="h-5 w-5" />
-            Security & Login
-          </button>
-          <button className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-muted-foreground font-bold hover:bg-card transition-all">
-            <CreditCard className="h-5 w-5" />
-            Payment Methods
-          </button>
+        <div>
+          {/* Desktop Navigation */}
+          <div className="hidden md:block space-y-2">
+            <button className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-card border-2 border-primary shadow-xl shadow-indigo-500/10 text-primary font-black transition-all">
+              <User className="h-5 w-5" />
+              Personal Info
+            </button>
+            <button className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-muted-foreground font-bold hover:bg-card transition-all">
+              <Shield className="h-5 w-5" />
+              Security & Login
+            </button>
+            <button className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-muted-foreground font-bold hover:bg-card transition-all">
+              <CreditCard className="h-5 w-5" />
+              Payment Methods
+            </button>
+          </div>
+
+          {/* Mobile Navigation */}
+          <div className="md:hidden">
+             <div className="bg-card border border-border p-2 rounded-2xl flex items-center gap-1 overflow-x-auto scrollbar-none snap-x active:cursor-grabbing shadow-sm">
+                {[
+                  { icon: User, label: 'Profile', active: true },
+                  { icon: Shield, label: 'Security' },
+                  { icon: CreditCard, label: 'Payment' },
+                ].map((item, idx) => (
+                  <button 
+                    key={idx} 
+                    className={`flex flex-col items-center justify-center min-w-[70px] aspect-square rounded-2xl text-[10px] font-bold snap-center ${item.active ? 'bg-primary/10 text-primary border border-primary/20 shadow-inner' : 'text-muted-foreground hover:bg-muted'}`}
+                  >
+                    <item.icon className="h-5 w-5 mb-1" />
+                    {item.label}
+                  </button>
+                ))}
+             </div>
+          </div>
         </div>
 
         {/* Main Form */}

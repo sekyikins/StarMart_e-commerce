@@ -2,12 +2,14 @@
 import React, { useState } from 'react';
 import { useAuth } from '@/lib/auth';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ShoppingBag, Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ShoppingBag } from 'lucide-react';
 import Link from 'next/link';
+import { useSettingsStore } from '@/lib/store';
 
 function LoginContent() {
   const { login } = useAuth();
   const router = useRouter();
+  const { storeName } = useSettingsStore();
   const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -36,7 +38,7 @@ function LoginContent() {
           </div>
         </div>
         <h1 className="text-2xl font-black text-center mb-1">Welcome back</h1>
-        <p className="text-muted-foreground text-sm text-center mb-6">Sign in to your StarMart account</p>
+        <p className="text-muted-foreground text-sm text-center mb-6">Sign in to your {storeName} account</p>
 
         <form onSubmit={handleLogin} className="space-y-4">
           <div className="relative">
@@ -66,11 +68,12 @@ function LoginContent() {
 }
 
 export default function LoginPage() {
+  const { storeName } = useSettingsStore();
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4">
       <Link href="/" className="flex items-center gap-2 mb-8">
         <div className="h-8 w-8 rounded-lg bg-indigo-600 flex items-center justify-center"><ShoppingBag className="h-5 w-5 text-white"/></div>
-        <span className="font-black text-xl">StarMart</span>
+        <span className="font-black text-xl">{storeName}</span>
       </Link>
       <React.Suspense><LoginContent /></React.Suspense>
     </div>

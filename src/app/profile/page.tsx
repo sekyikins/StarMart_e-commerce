@@ -9,13 +9,15 @@ import {
   User, Mail, Phone, Star, ShoppingBag, 
   Settings, MapPin, 
   ChevronRight, Clock, FileText,
-  HelpCircle, ShieldCheck, LogOut
+  HelpCircle, ShieldCheck, LogOut 
 } from 'lucide-react';
 import { getOrdersByUser } from '@/lib/db';
+import { useCartStore, useSettingsStore } from '@/lib/store';
 import { Order } from '@/lib/types';
 import Link from 'next/link';
 
 function LoyaltyModal({ onClose }: { onClose: () => void }) {
+  const { storeName } = useSettingsStore();
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
@@ -25,7 +27,7 @@ function LoyaltyModal({ onClose }: { onClose: () => void }) {
             <Star className="h-10 w-10 text-indigo-900 fill-indigo-900" />
           </div>
         </div>
-        <h2 className="text-3xl font-black text-center mb-2">StarMart Loyalty</h2>
+        <h2 className="text-3xl font-black text-center mb-2">{storeName} Loyalty</h2>
         <p className="text-center text-muted-foreground mb-8 text-sm px-4">Your loyalty is recognized! Use your points for exclusive discounts and free deliveries on future orders.</p>
         
         <div className="space-y-4">
@@ -33,7 +35,7 @@ function LoyaltyModal({ onClose }: { onClose: () => void }) {
             <div className="h-10 w-10 shrink-0 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-black">1</div>
             <div>
               <h4 className="font-bold text-sm">Welcome Gift</h4>
-              <p className="text-xs text-muted-foreground mt-0.5">Get 100 free points instantly when you create your StarMart account.</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Get 100 free points instantly when you create your {storeName} account.</p>
             </div>
           </div>
           <div className="p-5 rounded-2xl bg-muted/50 border border-border flex gap-4">
@@ -65,6 +67,7 @@ function LoyaltyModal({ onClose }: { onClose: () => void }) {
 
 function ProfileContent() {
   const { user, logout, isLoading: authLoading } = useAuth();
+  const { storeName, currencySymbol } = useSettingsStore();
   const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
@@ -97,12 +100,12 @@ function ProfileContent() {
           <User className="h-12 w-12 text-muted-foreground"/>
         </div>
         <h2 className="text-2xl font-black mb-2">Access Denied</h2>
-        <p className="text-muted-foreground mb-8">Please sign in to your StarMart account to view your profile and order history.</p>
+        <p className="text-muted-foreground mb-8">Please sign in to your {storeName} account to view your profile and order history.</p>
         <Link 
           href="/login" 
           className="w-full flex items-center justify-center h-14 rounded-2xl bg-primary text-white font-bold hover:opacity-90 transition-all hover:scale-[1.02]"
         >
-          Sign In to StarMart
+          Sign In to {storeName}
         </Link>
       </div>
     );
@@ -250,23 +253,23 @@ function ProfileContent() {
           <div className="lg:col-span-9 space-y-8">
             
             {/* Quick Stats Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               <div className="bg-card p-6 rounded-4xl border-2 border-border shadow-2xl shadow-blue-500/20 hover:shadow-blue-500/30 transition-all group">
-                <div className="h-10 w-10 rounded-xl bg-blue-100 dark:bg-blue-900/40 text-blue-600 flex items-center justify-center mb-4 ring-4 ring-blue-100 dark:ring-blue-900/40 group-hover:scale-110 transition-transform">
+                <div className="h-10 w-10 rounded-xl bg-blue-100 dark:bg-blue-900/40 text-blue-600 flex items-center justify-center m-1 mb-4 ring-4 ring-blue-100 dark:ring-blue-900/40 group-hover:scale-110 transition-transform">
                   <ShoppingBag className="h-5 w-5" />
                 </div>
                 <div className="text-2xl font-black">{orders.length}</div>
                 <div className="text-muted-foreground text-xs font-bold uppercase tracking-wider">Total Orders</div>
               </div>
               <div className="bg-card p-6 rounded-4xl border-2 border-border shadow-2xl shadow-orange-500/20 hover:shadow-orange-500/30 transition-all group">
-                <div className="h-10 w-10 rounded-xl bg-orange-100 dark:bg-orange-900/40 text-orange-600 flex items-center justify-center mb-4 ring-4 ring-orange-100 dark:ring-orange-900/40 group-hover:scale-110 transition-transform">
+                <div className="h-10 w-10 rounded-xl bg-orange-100 dark:bg-orange-900/40 text-orange-600 flex items-center justify-center m-1 mb-4 ring-4 ring-orange-100 dark:ring-orange-900/40 group-hover:scale-110 transition-transform">
                   <Clock className="h-5 w-5" />
                 </div>
                 <div className="text-2xl font-black">{orders.filter(o => o.status === 'PENDING').length}</div>
                 <div className="text-muted-foreground text-xs font-bold uppercase tracking-wider">Active Shipments</div>
               </div>
-              <div className="bg-card p-6 rounded-4xl border-2 border-border shadow-2xl shadow-emerald-500/20 hover:shadow-emerald-500/30 transition-all group">
-                <div className="h-10 w-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 flex items-center justify-center mb-4 ring-4 ring-emerald-100 dark:ring-emerald-900/40 group-hover:scale-110 transition-transform">
+              <div className="col-span-2 md:col-span-1 bg-card p-6 rounded-4xl border-2 border-border shadow-2xl shadow-emerald-500/20 hover:shadow-emerald-500/30 transition-all group">
+                <div className="h-10 w-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 flex items-center justify-center m-1 mb-4 ring-4 ring-emerald-100 dark:ring-emerald-900/40 group-hover:scale-110 transition-transform">
                   <Star className="h-5 w-5" />
                 </div>
                 <div className="text-2xl font-black">Silver</div>
@@ -279,10 +282,10 @@ function ProfileContent() {
               <div className="px-8 py-6 border-b-2 border-border flex items-center justify-between bg-muted/30 backdrop-blur-sm">
                 <h3 className="font-black text-xl">Personal Information</h3>
                 <Link href="/settings" className="px-4 h-9 flex items-center rounded-full bg-primary/10 text-primary text-xs font-bold hover:bg-primary/20 transition-all gap-1">
-                  Manage Settings <ChevronRight className="h-3 w-3" />
+                  Manage <span className='hidden md:block'>Settings</span> <ChevronRight className="h-3 w-3" />
                 </Link>
               </div>
-              <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="p-8 grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1.5 block">Full Name</label>
                   <div className="text-foreground font-bold flex items-center gap-2">
@@ -303,7 +306,7 @@ function ProfileContent() {
                 </div>
                 <div>
                   <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1.5 block">Preferred Address</label>
-                  <div className="text-foreground font-bold flex items-center gap-2">
+                  <div className="text-foreground font-bold flex flex-start gap-2">
                     <MapPin className="h-4 w-4 text-primary opacity-50" /> Default Address
                   </div>
                 </div>
@@ -339,7 +342,7 @@ function ProfileContent() {
                       </div>
                       <div className="flex items-center gap-8">
                         <div className="text-right hidden md:block">
-                          <div className="font-black text-2xl tracking-tighter">${order.totalAmount.toFixed(2)}</div>
+                          <div className="font-black text-2xl tracking-tighter">{currencySymbol}{order.totalAmount.toFixed(2)}</div>
                           <div className="text-[10px] text-primary font-black uppercase tracking-widest">{order.items.length} items purchased</div>
                         </div>
                         <div className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm border-2 ${
@@ -381,7 +384,7 @@ function ProfileContent() {
               </div>
             </div>
             <h4 className="text-2xl font-black text-center mb-2">Sign Out</h4>
-            <p className="text-center text-muted-foreground mb-8 font-medium">Are you sure you want to sign out of your StarMart account?</p>
+            <p className="text-center text-muted-foreground mb-8 font-medium">Are you sure you want to sign out of your {storeName} account?</p>
             <div className="grid grid-cols-2 gap-3">
               <button 
                 onClick={() => setShowLogoutConfirm(false)}

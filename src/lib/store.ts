@@ -1,5 +1,18 @@
 import { create } from 'zustand';
-import { CartItem, Product } from './types';
+import { CartItem, Product, StoreSettings } from './types';
+import { getStoreSettings } from './db';
+
+const CURRENCY_MAP: Record<string, string> = {
+  'USD': '$',
+  'EUR': '€',
+  'GBP': '£',
+  'GHS': '₵',
+  'NGN': '₦',
+  'KES': 'KSh',
+  'INR': '₹',
+  'JPY': '¥',
+  'ZAR': 'R',
+};
 
 interface CartState {
   items: CartItem[];
@@ -35,7 +48,8 @@ export const useCartStore = create<CartState>((set, get) => ({
           price: product.price,
           quantity: Math.min(quantity, product.quantity),
           subtotal: Math.min(quantity, product.quantity) * product.price,
-          maxQuantity: product.quantity
+          maxQuantity: product.quantity,
+          imageUrl: product.imageUrl
         }];
       }
       if (userId) syncCartToDB(userId, newItems);
@@ -93,3 +107,43 @@ export const useToastStore = create<ToastState>((set) => ({
   },
   removeToast: (id) => set((state) => ({ toasts: state.toasts.filter((t) => t.id !== id) })),
 }));
+
+interface SettingsState {
+  storeName: string;
+  currency: string;
+  currencySymbol: string;
+  taxRate: number;
+  isInitialized: boolean;
+  setSettings: (settings: StoreSettings) => void;
+  fetchSettings: () => Promise<void>;
+}
+
+export const useSettingsStore = create<SettingsState>((set) => ({
+  storeName: 'StarMart',
+  currency: 'USD',
+  currencySymbol: '$',
+  taxRate: 0,
+  isInitialized: false,
+  setSettings: (s) => set({ 
+    storeName: s.storeName, 
+    currency: s.currency, 
+    currencySymbol: CURRENCY_MAP[s.currency] || s.currency,
+    taxRate: s.taxRate,
+    isInitialized: true 
+  }),
+  fetchSettings: async () => {
+    try {
+      const s = await getStoreSettings();
+      set({ 
+        storeName: s.storeName, 
+        currency: s.currency, 
+        currencySymbol: CURRENCY_MAP[s.currency] || s.currency,
+        taxRate: s.taxRate,
+        isInitialized: true 
+      });
+    } catch (err) {
+      console.error('Failed to fetch settings:', err);
+    }
+  }
+}));
+

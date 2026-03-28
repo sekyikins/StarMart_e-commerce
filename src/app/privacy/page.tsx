@@ -5,8 +5,11 @@ import { Navbar } from '@/components/layout/Navbar';
 import { CartDrawer } from '@/components/cart/CartDrawer';
 import { ShieldCheck, Mail, Lock, Eye, ArrowLeft, User, ShoppingBag } from 'lucide-react';
 import Link from 'next/link';
+import { useSettingsStore } from '@/lib/store';
 
 function PrivacyContent() {
+  const { storeName } = useSettingsStore();
+  const contactEmail = `privacy@${storeName.toLowerCase().replace(/\s+/g, '')}.com`;
   return (
     <div className="max-w-4xl mx-auto w-full px-6 pt-6 md:pt-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
       
@@ -37,7 +40,7 @@ function PrivacyContent() {
             1. Your Data Protection
           </h2>
           <p className="text-muted-foreground leading-relaxed">
-            At StarMart, we take your privacy seriously. This policy describes how we collect, use, and handle your information when you use our storefront and administrative modules. Our systems are built with 256-bit AES encryption to ensure your data is always safe.
+            At {storeName}, we take your privacy seriously. This policy describes how we collect, use, and handle your information when you use our storefront and administrative modules. Our systems are built with 256-bit AES encryption to ensure your data is always safe.
           </p>
         </section>
 
@@ -76,7 +79,7 @@ function PrivacyContent() {
           <div className="p-4 bg-primary/5 rounded-2xl border border-primary/20 flex items-start gap-3">
              <ShieldCheck className="h-5 w-5 text-primary mt-0.5" />
              <p className="text-xs text-primary font-medium leading-relaxed">
-                StarMart follows GDPR and modern data protection standards to provide you with the highest level of control over your digital footprint.
+                {storeName} follows GDPR and modern data protection standards to provide you with the highest level of control over your digital footprint.
              </p>
           </div>
         </section>
@@ -85,7 +88,7 @@ function PrivacyContent() {
            <h3 className="text-xl font-black mb-2">Have questions about your privacy?</h3>
            <p className="text-muted-foreground mb-6">Our security team is ready to help you with any concerns.</p>
            <a 
-             href="mailto:privacy@starmart.com" 
+             href={`mailto:${contactEmail}`} 
              className="inline-flex items-center gap-2 h-12 px-8 rounded-2xl bg-foreground text-background font-black hover:opacity-90 transition-all active:scale-95"
            >
               <Mail className="h-5 w-5" />

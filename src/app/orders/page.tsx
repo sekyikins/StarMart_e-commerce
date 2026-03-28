@@ -8,7 +8,7 @@ import { CartDrawer } from '@/components/cart/CartDrawer';
 import { useRouter } from 'next/navigation';
 import { Package, Clock, CheckCircle2, XCircle, Truck, AlertCircle, CreditCard, MapPin, Wifi, WifiOff } from 'lucide-react';
 import Link from 'next/link';
-import { useToastStore } from '@/lib/store';
+import { useToastStore, useSettingsStore } from '@/lib/store';
 import { Order, OrderItem } from '@/lib/types';
 import { useRealtimeTable, ConnectionStatus } from '@/hooks/useRealtimeTable';
 
@@ -74,7 +74,7 @@ function OrderCard({ order, onUpdate }: { order: Order; onUpdate: () => void }) 
           <div className="h-10 w-px bg-border mx-1" />
           <div className="text-right">
             <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">TOTAL</p>
-            <p className="font-black text-lg mt-0.5 text-foreground">${order.totalAmount.toFixed(2)}</p>
+            <p className="font-black text-lg mt-0.5 text-foreground">{useSettingsStore.getState().currencySymbol}{order.totalAmount.toFixed(2)}</p>
           </div>
         </div>
       </div>
@@ -102,7 +102,7 @@ function OrderCard({ order, onUpdate }: { order: Order; onUpdate: () => void }) 
               <div className="h-6 w-6 rounded bg-muted flex items-center justify-center text-[10px] font-black text-muted-foreground uppercase">{item.productName.charAt(0)}</div>
               <span className="text-foreground/80 font-medium">{item.productName} <span className="text-muted-foreground text-xs ml-1 font-bold">×{item.quantity}</span></span>
             </div>
-            <span className="font-bold text-foreground">${item.subtotal.toFixed(2)}</span>
+            <span className="font-bold text-foreground">{useSettingsStore.getState().currencySymbol}{item.subtotal.toFixed(2)}</span>
           </div>
         ))}
       </div>
@@ -178,7 +178,7 @@ function OrdersContent() {
           </div>
         )}
 
-        <div className="mt-12 flex flex-col sm:flex-row justify-center items-center gap-4 sm:gap-8 pb-10 grayscale opacity-50">
+        <div className="mt-12 flex flex-col sm:flex-row justify-center items-center gap-4 sm:gap-8 grayscale opacity-50">
           <Link href="/terms" className="text-xs font-bold text-muted-foreground hover:text-foreground">TERMS &amp; CONDITIONS</Link>
           <Link href="/faq" className="text-xs font-bold text-muted-foreground hover:text-foreground">REFUND POLICY &amp; FAQS</Link>
         </div>

@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth';
-import { useCartStore } from '@/lib/store';
+import { useCartStore, useSettingsStore } from '@/lib/store';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { ShoppingBag, User, Menu, X, Package } from 'lucide-react';
 
@@ -22,6 +22,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const { user } = useAuth();
   const itemCount = useCartStore(s => s.getItemCount());
+  const { storeName } = useSettingsStore();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 
   return (
@@ -34,7 +35,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <div className="h-8 w-8 rounded-lg bg-indigo-600 flex items-center justify-center shadow shadow-indigo-500/30">
               <ShoppingBag className="h-5 w-5 text-white" />
             </div>
-            <span className="text-xl font-black tracking-tight hidden sm:block">StarMart</span>
+            <span className="text-xl font-black tracking-tight hidden sm:block">{storeName}</span>
           </Link>
 
           {/* Search */}

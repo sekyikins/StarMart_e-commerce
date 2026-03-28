@@ -28,6 +28,7 @@ export interface CartItem {
   quantity: number;
   subtotal: number;
   maxQuantity: number;
+  imageUrl?: string;
 }
 
 export interface DeliveryPoint {
@@ -67,4 +68,14 @@ export interface StorefrontUser {
   phone?: string;
   loyalty_points: number;
   created_at: string;
+}
+
+export interface StoreSettings {
+  id: string;
+  storeName: string;
+  currency: string;
+  taxRate: number;
+  receiptHeader: string | null;
+  receiptFooter: string | null;
+  updatedAt: string;
 }

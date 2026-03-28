@@ -5,10 +5,12 @@ import { createStorefrontUser } from '@/lib/db';
 import { useRouter } from 'next/navigation';
 import { ShoppingBag, Mail, Lock, User, Eye, EyeOff, Phone } from 'lucide-react';
 import Link from 'next/link';
+import { useSettingsStore } from '@/lib/store';
 
 function SignupContent() {
   const { refreshUser } = useAuth();
   const router = useRouter();
+  const { storeName } = useSettingsStore();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -40,7 +42,7 @@ function SignupContent() {
           </div>
         </div>
         <h1 className="text-2xl font-black text-center mb-1">Create account</h1>
-        <p className="text-muted-foreground text-sm text-center mb-6">Join StarMart — shop smarter</p>
+        <p className="text-muted-foreground text-sm text-center mb-6">Join {storeName} — shop smarter</p>
 
         <form onSubmit={handleSignup} className="space-y-4">
           <div className="relative">
@@ -78,11 +80,12 @@ function SignupContent() {
 }
 
 export default function SignupPage() {
+  const { storeName } = useSettingsStore();
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4">
       <Link href="/" className="flex items-center gap-2 mb-8">
         <div className="h-8 w-8 rounded-lg bg-indigo-600 flex items-center justify-center"><ShoppingBag className="h-5 w-5 text-white"/></div>
-        <span className="font-black text-xl">StarMart</span>
+        <span className="font-black text-xl">{storeName}</span>
       </Link>
       <SignupContent />
     </div>

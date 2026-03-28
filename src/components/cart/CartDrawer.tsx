@@ -1,10 +1,11 @@
 'use client';
 import React, { useState } from 'react';
-import { useCartStore } from '@/lib/store';
+import { useCartStore, useSettingsStore } from '@/lib/store';
 import { useAuth } from '@/lib/auth';
 import { placeOrder, getDeliveryPoints } from '@/lib/db';
 import { X, Minus, Plus, ShoppingBag, MapPin, CreditCard, Smartphone, CheckCircle2, Package, Copy, ChevronLeft, ArrowRight, Loader2, Search, type LucideIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -85,7 +86,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
     const ActiveIcon = titles[step].icon;
 
     return (
-      <div className="flex items-center justify-between px-6 py-5 border-b border-border shrink-0 bg-card/50 backdrop-blur-md sticky top-0 z-20">
+      /* Cart Header */
+      <div className="flex items-center justify-between p-5 border-b border-border shrink-0 bg-card/50 backdrop-blur-md sticky top-0 z-20">
         <div className="flex items-center gap-3">
           {step !== 'CART' && step !== 'SUCCESS' && (
             <button 
@@ -148,15 +150,24 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                   </div>
                   <h3 className="text-xl font-black text-foreground mb-2">Shopping Bag is Empty</h3>
                   <p className="text-muted-foreground text-sm font-medium mb-8 px-12">Looking for something tasty? Browse our collection of premium fresh goods.</p>
-                  <button onClick={onClose} className="px-8 h-12 rounded-2xl bg-primary text-white font-black shadow-lg shadow-primary/20 hover:scale-[1.05] transition-all active:scale-95">Explore Products</button>
+                  <button onClick={onClose} className="px-4 py-3 rounded-2xl bg-primary text-white font-black shadow-lg shadow-primary/20 hover:scale-[1.05] transition-all active:scale-95">Explore Products</button>
                 </div>
               ) : (
                 <>
                   <div className="space-y-3">
                     {cart.items.map(item => (
                       <div key={item.productId} className="flex gap-4 p-4 rounded-2xl bg-card border border-border/50 hover:border-primary/20 transition-all group">
-                        <div className="h-20 w-20 rounded-2xl bg-muted flex items-center justify-center text-muted-foreground font-black text-2xl shrink-0 uppercase shadow-inner overflow-hidden relative">
-                          {item.productName.charAt(0)}
+                        <div className="h-15 w-15 rounded-2xl bg-muted flex items-center justify-center text-muted-foreground font-black text-2xl shrink-0 uppercase shadow-inner overflow-hidden relative">
+                          {item.imageUrl ? (
+                            <Image 
+                              src={item.imageUrl} 
+                              alt={item.productName} 
+                              fill
+                              className="object-cover"
+                            />
+                          ) : (
+                            item.productName.charAt(0)
+                          )}
                           <div className="absolute inset-0 bg-linear-to-br from-primary/5 to-transparent" />
                         </div>
                         <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
@@ -168,9 +179,9 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                             <div className="flex items-center rounded-xl border-2 border-border bg-background p-0.5">
                               <button className="h-7 w-7 flex items-center justify-center hover:bg-muted rounded-lg transition-colors" onClick={() => item.quantity > 1 ? cart.updateQuantity(item.productId, item.quantity - 1, user?.id) : cart.removeItem(item.productId, user?.id)}><Minus className="h-3 w-3"/></button>
                               <span className="w-8 text-center text-sm font-black">{item.quantity}</span>
-                              <button className="h-7 w-7 flex items-center justify-center hover:bg-muted rounded-lg transition-colors" onClick={() => cart.updateQuantity(item.productId, item.quantity + 1, user?.id)}><Plus className="h-3 w-3"/></button>
+                             <button className="h-7 w-7 flex items-center justify-center hover:bg-muted rounded-lg transition-colors" onClick={() => cart.updateQuantity(item.productId, item.quantity + 1, user?.id)}><Plus className="h-3 w-3"/></button>
                             </div>
-                            <p className="font-black text-primary text-base">${item.subtotal.toFixed(2)}</p>
+                            <p className="font-black text-primary text-base">{useSettingsStore.getState().currencySymbol}{item.subtotal.toFixed(2)}</p>
                           </div>
                         </div>
                       </div>
@@ -193,7 +204,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                  <div className="grid grid-cols-1 gap-3">
                     <p className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em] px-2">Saved Distribution Centers</p>
                     {deliveryPoints.map(dp => (
-                      <button key={dp.id} onClick={() => { setSelectedDeliveryPoint(dp.id); setUseCustomAddress(false); }} className={`flex items-start gap-4 p-5 rounded-2xl border-2 text-left transition-all ${selectedDeliveryPoint === dp.id && !useCustomAddress ? 'border-primary bg-primary/5 ring-1 ring-primary/20 shadow-lg' : 'border-border bg-card hover:border-primary/30 shadow-sm'}`}>
+                      <button key={dp.id} onClick={() => { setSelectedDeliveryPoint(dp.id); setUseCustomAddress(false); }} className={`flex items-start gap-4 p-3 rounded-2xl border-2 text-left transition-all ${selectedDeliveryPoint === dp.id && !useCustomAddress ? 'border-primary bg-primary/5 ring-1 ring-primary/20 shadow-lg' : 'border-border bg-card hover:border-primary/30 shadow-sm'}`}>
                          <div className={`h-10 w-10 rounded-xl flex items-center justify-center transition-colors ${selectedDeliveryPoint === dp.id && !useCustomAddress ? 'bg-primary text-white' : 'bg-muted text-muted-foreground'}`}>
                             <MapPin className="h-5 w-5" />
                          </div>
@@ -231,7 +242,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                <div className="space-y-4">
                   <p className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em] px-2 mb-4">Choose Method</p>
                   {(['CARD', 'MOBILE_MONEY', 'PAY_ON_DELIVERY'] as const).map(m => (
-                    <button key={m} onClick={() => setPaymentMethod(m)} className={`flex items-center gap-5 p-6 rounded-3xl border-2 transition-all relative overflow-hidden group ${paymentMethod === m ? 'border-primary bg-primary/5 ring-1 ring-primary/30 shadow-xl' : 'border-border bg-card hover:border-primary/40 shadow-sm'}`}>
+                    <button key={m} onClick={() => setPaymentMethod(m)} className={`flex items-center gap-5 p-3 rounded-2xl border-2 transition-all relative overflow-hidden group ${paymentMethod === m ? 'border-primary bg-primary/5 ring-1 ring-primary/30 shadow-xl' : 'border-border bg-card hover:border-primary/40 shadow-sm'}`}>
                        <div className={`p-4 rounded-2xl transition-all ${paymentMethod === m ? 'bg-primary text-white scale-110' : 'bg-muted text-muted-foreground group-hover:text-primary'}`}>
                           {m === 'CARD' && <CreditCard className="h-6 w-6"/>}
                           {m === 'MOBILE_MONEY' && <Smartphone className="h-6 w-6"/>}
@@ -256,7 +267,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                     <div className="absolute right-[-20px] top-[-20px] h-32 w-32 rounded-full bg-white/10 blur-3xl" />
                     <div className="flex justify-between items-start mb-10">
                        <CreditCard className="h-8 w-8 text-white/50" />
-                       <span className="font-black text-sm tracking-widest italic opacity-60">STARMART CARD</span>
+                       <span className="font-black text-sm tracking-widest italic opacity-60">{useSettingsStore.getState().storeName.toUpperCase()} CARD</span>
                     </div>
                     <div className="space-y-4">
                        <p className="text-xl font-mono tracking-widest leading-none">•••• •••• •••• 8842</p>
@@ -279,9 +290,9 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
           {/* 4. SUMMARY PAGE */}
           {step === 'SUMMARY' && (
             <div className="p-6 space-y-8 animate-in fade-in slide-in-from-right-4 duration-300 pb-24">
-               <div className="space-y-6">
+               <div className="space-y-4">
                  {/* Destination */}
-                  <div className="bg-card rounded-3xl p-6 border-2 border-border shadow-sm">
+                  <div className="bg-card rounded-2xl p-5 border-2 border-border shadow-sm">
                      <div className="flex justify-between items-start mb-4">
                         <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Ship To</span>
                         <button onClick={() => setStep('DELIVERY')} className="text-[10px] font-black text-muted-foreground hover:text-primary transition-colors underline uppercase tracking-tighter">Edit</button>
@@ -300,7 +311,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                   </div>
 
                   {/* Payment */}
-                  <div className="bg-card rounded-3xl p-6 border-2 border-border shadow-sm">
+                  <div className="bg-card rounded-2xl p-5 border-2 border-border shadow-sm">
                      <div className="flex justify-between items-start mb-4">
                         <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Payment</span>
                         <button onClick={() => setStep('PAYMENT')} className="text-[10px] font-black text-muted-foreground hover:text-primary transition-colors underline uppercase tracking-tighter">Edit</button>
@@ -321,7 +332,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                         {cart.items.map(item => (
                           <div key={item.productId} className="flex justify-between items-center p-3 hover:bg-card/50 rounded-2xl transition-colors">
                             <span className="font-bold text-foreground truncate max-w-[240px] text-sm">{item.productName} <span className="text-muted-foreground text-xs ml-1">× {item.quantity}</span></span>
-                            <span className="font-black text-foreground text-sm">${item.subtotal.toFixed(2)}</span>
+                            <span className="font-black text-foreground text-sm">{useSettingsStore.getState().currencySymbol}{item.subtotal.toFixed(2)}</span>
                           </div>
                         ))}
                      </div>
@@ -345,7 +356,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                   <p className="text-muted-foreground text-sm font-medium leading-relaxed">Prepare for arrival. We&apos;ve sent the tracking details to your primary email address.</p>
                </div>
 
-               <div className="w-full bg-card rounded-[2.5rem] p-4 border-2 border-border/50 group cursor-pointer active:scale-[0.98] transition-all relative overflow-hidden shadow-2xl hover:border-primary/50" onClick={copyToClipboard}>
+               <div className="w-full bg-card rounded-3xl p-4 border-2 border-border/50 group cursor-pointer active:scale-[0.98] transition-all relative overflow-hidden shadow-2xl hover:border-primary/50" onClick={copyToClipboard}>
                  <div className="flex flex-col items-center gap-2 z-10 relative">
                     <span className="text-[10px] font-black text-muted-foreground/50 uppercase tracking-[0.4em]">Tracking Reference</span>
                     <div className="flex items-center gap-4 py-4">
@@ -362,15 +373,15 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 
         {/* BOTTOM ACTION BAR */}
         {step !== 'SUCCESS' && (
-          <div className="p-8 border-t border-border bg-card/80 backdrop-blur-xl shrink-0 shadow-[0_-12px_40px_-16px_rgba(0,0,0,0.15)] z-20">
+          <div className="p-4 border-t border-border bg-card/80 backdrop-blur-xl shrink-0 shadow-[0_-12px_40px_-16px_rgba(0,0,0,0.15)] z-20">
             {step === 'CART' && cart.items.length > 0 && (
-              <div className="space-y-6">
+              <div className="space-y-5">
                  <div className="flex justify-between items-end">
                     <div className="space-y-1">
                        <p className="text-xs font-black text-muted-foreground uppercase tracking-widest">Cart Subtotal</p>
                        <p className="text-[10px] font-bold text-muted-foreground/60 italic leading-none truncate w-32">{cart.getItemCount()} Premium items selected</p>
                     </div>
-                    <p className="text-3xl font-black text-foreground tracking-tighter">${cart.getTotal().toFixed(2)}</p>
+                    <p className="text-3xl font-black text-foreground tracking-tighter">{useSettingsStore.getState().currencySymbol}{cart.getTotal().toFixed(2)}</p>
                  </div>
                  <button onClick={handleStartCheckout} className="w-full h-15 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-base flex items-center justify-center gap-4 transition-all shadow-xl shadow-indigo-500/30 active:scale-95 group">
                     PROCEED TO CHECKOUT <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
@@ -403,7 +414,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                   disabled={isProcessing}
                   className="w-full h-15 rounded-2xl bg-success hover:bg-success/90 text-white font-black text-base flex items-center justify-center gap-4 transition-all shadow-xl shadow-success/25 disabled:opacity-50"
                >
-                  {isProcessing ? <Loader2 className="h-6 w-6 animate-spin" /> : <>FINALIZE & ORDER · ${cart.getTotal().toFixed(2)} <CheckCircle2 className="h-5 w-5" /></>}
+                  {isProcessing ? <Loader2 className="h-6 w-6 animate-spin" /> : <>FINALIZE & ORDER · {useSettingsStore.getState().currencySymbol}{cart.getTotal().toFixed(2)} <CheckCircle2 className="h-5 w-5" /></>}
                </button>
             )}
           </div>
