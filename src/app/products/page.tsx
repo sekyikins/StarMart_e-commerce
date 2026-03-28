@@ -8,11 +8,11 @@ import { Product } from '@/lib/types';
 import { useCartStore, useToastStore } from '@/lib/store';
 import { SlidersHorizontal, Search } from 'lucide-react';
 
+import { useRealtimeTable } from '@/hooks/useRealtimeTable';
+
 function ProductsContent() {
-  const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [categorySearch, setCategorySearch] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [selectedCat, setSelectedCat] = useState('');
   const [sortBy, setSortBy] = useState<'name' | 'price_asc' | 'price_desc'>('name');
@@ -20,19 +20,15 @@ function ProductsContent() {
   const cart = useCartStore();
   const { addToast, toasts } = useToastStore();
 
+  const { data: products, isLoading } = useRealtimeTable<Product>({
+    table: 'products',
+    initialData: [],
+    fetcher: getProducts,
+    refetchOnChange: true
+  });
+
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [p, c] = await Promise.all([getProducts(), getCategories()]);
-        setProducts(p);
-        setCategories(c);
-      } catch (err) {
-        console.error('Failed to fetch data:', err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchData();
+    getCategories().then(setCategories).catch(err => console.error('Failed to fetch categories:', err));
   }, []);
 
   const filtered = products
@@ -58,7 +54,7 @@ function ProductsContent() {
       
       <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-10">
         <div className="mb-10">
-          <h1 className="text-4xl font-black mb-2 tracking-tight">Full Catalogue</h1>
+          <h1 className="text-4xl font-bold mb-2 tracking-tight">Full Catalogue</h1>
           <p className="text-muted-foreground text-sm">Discover and filter our complete selection of products</p>
         </div>
 

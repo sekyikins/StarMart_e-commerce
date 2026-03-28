@@ -49,7 +49,7 @@ export const useCartStore = create<CartState>((set, get) => ({
           quantity: Math.min(quantity, product.quantity),
           subtotal: Math.min(quantity, product.quantity) * product.price,
           maxQuantity: product.quantity,
-          imageUrl: product.imageUrl
+          image_url: product.image_url
         }];
       }
       if (userId) syncCartToDB(userId, newItems);

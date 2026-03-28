@@ -13,11 +13,12 @@ export type AuthUser = Omit<UserRecord, 'passwordHash'>;
 export interface Product {
   id: string;
   name: string;
+  categoryId?: string;
   category: string;
   price: number;
   quantity: number;
   barcode: string;
-  imageUrl?: string;
+  image_url?: string;
   description?: string;
 }
 
@@ -28,7 +29,7 @@ export interface CartItem {
   quantity: number;
   subtotal: number;
   maxQuantity: number;
-  imageUrl?: string;
+  image_url?: string;
 }
 
 export interface DeliveryPoint {
@@ -78,4 +79,14 @@ export interface StoreSettings {
   receiptHeader: string | null;
   receiptFooter: string | null;
   updatedAt: string;
+}
+
+export interface Review {
+  id: string;
+  productId: string;
+  customerId: string;
+  customerName: string;
+  rating: number; // 1-5
+  comment?: string;
+  createdAt: string;
 }

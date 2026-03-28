@@ -37,11 +37,11 @@ function FAQContent() {
       
       <div className="max-w-4xl mx-auto w-full px-4 py-16">
         <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest mb-4">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-widest mb-4">
             <HelpCircle className="h-3 w-3" />
             Support Center
           </div>
-          <h1 className="text-4xl md:text-5xl font-black mb-4 tracking-tight">Refund Policy & FAQs</h1>
+          <h1 className="text-4xl md:text-5xl font-bold mb-4 tracking-tight">Refund Policy & FAQs</h1>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">Everything you need to know about our services, orders, and policies.</p>
         </div>
 

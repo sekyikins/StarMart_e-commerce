@@ -60,7 +60,7 @@ function SettingsContent() {
       
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-black mb-2 flex items-center gap-3">
+        <h1 className="text-3xl font-bold mb-2 flex items-center gap-3">
           <Settings className="h-8 w-8 text-primary" />
           Account Settings
         </h1>
@@ -73,7 +73,7 @@ function SettingsContent() {
         <div>
           {/* Desktop Navigation */}
           <div className="hidden md:block space-y-2">
-            <button className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-card border-2 border-primary shadow-xl shadow-indigo-500/10 text-primary font-black transition-all">
+            <button className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-card border-2 border-primary shadow-xl shadow-indigo-500/10 text-primary font-bold transition-all">
               <User className="h-5 w-5" />
               Personal Info
             </button>
@@ -112,14 +112,14 @@ function SettingsContent() {
           
           {/* Profile Section */}
           <div className="bg-card rounded-4xl border-2 border-border p-8 shadow-2xl shadow-indigo-500/15 mb-8">
-            <h3 className="text-xl font-black mb-6 flex items-center gap-2">
+            <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
               <User className="h-5 w-5 text-primary" />
               Public Profile
             </h3>
             
             <form onSubmit={handleUpdate} className="grid grid-cols-1 gap-6">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Display Name</label>
+                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-1">Display Name</label>
                 <div className="relative">
                   <User className="absolute left-4 top-3.5 h-5 w-5 text-muted-foreground" />
                   <input 
@@ -132,7 +132,7 @@ function SettingsContent() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Email Address (Read Only)</label>
+                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-1">Email Address (Read Only)</label>
                 <div className="relative opacity-60">
                   <Mail className="absolute left-4 top-3.5 h-5 w-5 text-muted-foreground" />
                   <input 
@@ -145,7 +145,7 @@ function SettingsContent() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">Phone Number</label>
+                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-1">Phone Number</label>
                 <div className="relative">
                   <Phone className="absolute left-4 top-3.5 h-5 w-5 text-muted-foreground" />
                   <input 
@@ -160,7 +160,7 @@ function SettingsContent() {
               <button 
                 type="submit"
                 disabled={isSaving}
-                className="h-12 w-full mt-2 bg-primary text-white rounded-2xl font-black hover:opacity-90 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                className="h-12 w-full mt-2 bg-primary text-white rounded-2xl font-bold hover:opacity-90 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {isSaving ? (
                   <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -174,7 +174,7 @@ function SettingsContent() {
 
           {/* Preferences Section */}
           <div className="bg-card rounded-4xl border-2 border-border p-8 shadow-2xl shadow-indigo-500/15 mb-8">
-            <h3 className="text-xl font-black mb-6">Preferences</h3>
+            <h3 className="text-xl font-bold mb-6">Preferences</h3>
             <div className="flex items-center justify-between p-4 rounded-2xl bg-muted/20 border border-border">
               <div className="flex items-center gap-4">
                 <div className="h-12 w-12 rounded-xl bg-orange-100 dark:bg-orange-900/40 text-orange-600 flex items-center justify-center">
@@ -191,7 +191,7 @@ function SettingsContent() {
 
           {/* Danger Zone Section */}
           <div className="bg-red-500/5 rounded-4xl border-2 border-red-500/20 p-8 shadow-xl shadow-red-500/5">
-            <h3 className="text-xl font-black text-red-500 mb-6 flex items-center gap-2">
+            <h3 className="text-xl font-bold text-red-500 mb-6 flex items-center gap-2">
               <AlertTriangle className="h-5 w-5" />
               Danger Zone
             </h3>
@@ -243,7 +243,7 @@ function SettingsContent() {
                 <LogOut className="h-8 w-8" />
               </div>
             </div>
-            <h4 className="text-2xl font-black text-center mb-2">Confirm Logout</h4>
+            <h4 className="text-2xl font-bold text-center mb-2">Confirm Logout</h4>
             <p className="text-center text-muted-foreground mb-8 font-medium">Are you sure you want to sign out of your account?</p>
             <div className="grid grid-cols-2 gap-3">
               <button 
@@ -273,7 +273,7 @@ function SettingsContent() {
                 <Trash2 className="h-8 w-8" />
               </div>
             </div>
-            <h4 className="text-2xl font-black text-center mb-2 text-red-600">Delete Account?</h4>
+            <h4 className="text-2xl font-bold text-center mb-2 text-red-600">Delete Account?</h4>
             <p className="text-center text-muted-foreground mb-8 font-medium">This action is permanent and cannot be undone. All your orders and data will be removed.</p>
             <div className="grid grid-cols-2 gap-3">
               <button 

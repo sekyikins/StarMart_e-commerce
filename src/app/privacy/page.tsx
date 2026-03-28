@@ -27,7 +27,7 @@ function PrivacyContent() {
           <ShieldCheck className="h-8 w-8" />
         </div>
         <div>
-          <h1 className="text-4xl font-black tracking-tight">Privacy Policy</h1>
+          <h1 className="text-4xl font-bold tracking-tight">Privacy Policy</h1>
           <p className="text-muted-foreground font-medium">Last updated: March 2026</p>
         </div>
       </div>
@@ -35,7 +35,7 @@ function PrivacyContent() {
       <div className="prose prose-zinc dark:prose-invert max-w-none space-y-6">
         
         <section className="bg-card rounded-3xl border border-border p-8 shadow-sm">
-          <h2 className="text-2xl font-black mb-4 flex items-center gap-2">
+          <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
             <Lock className="h-6 w-6 text-primary" />
             1. Your Data Protection
           </h2>
@@ -45,7 +45,7 @@ function PrivacyContent() {
         </section>
 
         <section className="space-y-6 px-4">
-          <h2 className="text-2xl font-black">2. Information We Collect</h2>
+          <h2 className="text-2xl font-bold">2. Information We Collect</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
              <div className="flex gap-4">
                 <div className="h-10 w-10 shrink-0 rounded-xl bg-muted flex items-center justify-center">
@@ -69,7 +69,7 @@ function PrivacyContent() {
         </section>
 
         <section className="bg-muted/30 rounded-3xl p-8 border border-border/50">
-          <h2 className="text-2xl font-black mb-4 flex items-center gap-2">
+          <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
             <Eye className="h-6 w-6 text-primary" />
             3. Transparency & Rights
           </h2>
@@ -85,11 +85,11 @@ function PrivacyContent() {
         </section>
 
         <section className="text-center py-8">
-           <h3 className="text-xl font-black mb-2">Have questions about your privacy?</h3>
+           <h3 className="text-xl font-bold mb-2">Have questions about your privacy?</h3>
            <p className="text-muted-foreground mb-6">Our security team is ready to help you with any concerns.</p>
            <a 
              href={`mailto:${contactEmail}`} 
-             className="inline-flex items-center gap-2 h-12 px-8 rounded-2xl bg-foreground text-background font-black hover:opacity-90 transition-all active:scale-95"
+             className="inline-flex items-center gap-2 h-12 px-8 rounded-2xl bg-foreground text-background font-bold hover:opacity-90 transition-all active:scale-95"
            >
               <Mail className="h-5 w-5" />
               Contact Privacy Team

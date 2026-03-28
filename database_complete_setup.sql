@@ -33,7 +33,8 @@ CREATE TABLE public.categories (
 CREATE TABLE public.products (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name TEXT NOT NULL,
-    category TEXT NOT NULL, -- Keep for compatibility, though categories table exists
+    category_id UUID REFERENCES public.categories(id) ON DELETE SET NULL, -- Relational Category
+    category TEXT NOT NULL, -- Keep for compatibility / denormalization
     price NUMERIC(10, 2) NOT NULL CHECK (price >= 0),
     quantity INTEGER NOT NULL DEFAULT 0 CHECK (quantity >= 0),
     barcode TEXT UNIQUE NOT NULL,
@@ -115,6 +116,7 @@ CREATE TABLE public.sales (
     discount NUMERIC(10, 2) DEFAULT 0 CHECK (discount >= 0),
     final_amount NUMERIC(10, 2) NOT NULL CHECK (final_amount >= 0),
     payment_method TEXT NOT NULL CHECK (payment_method IN ('CASH', 'MOBILE_MONEY', 'CARD')),
+    promo_code TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
 );
 
@@ -205,11 +207,15 @@ CREATE TABLE public.e_cart (
 -- 5.6 Promotions
 CREATE TABLE public.promotions (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name TEXT NOT NULL, -- Campaign name
     code TEXT UNIQUE NOT NULL,
-    discount_percentage NUMERIC(5, 2) NOT NULL CHECK (discount_percentage >= 0 AND discount_percentage <= 100),
-    start_date TIMESTAMP WITH TIME ZONE NOT NULL,
-    end_date TIMESTAMP WITH TIME ZONE NOT NULL,
-    active BOOLEAN DEFAULT true,
+    discount_type TEXT NOT NULL DEFAULT 'PERCENT' CHECK (discount_type IN ('FLAT', 'PERCENT')),
+    discount_value NUMERIC(10, 2) NOT NULL CHECK (discount_value >= 0),
+    min_subtotal NUMERIC(10, 2) DEFAULT 0 CHECK (min_subtotal >= 0),
+    start_date TIMESTAMP WITH TIME ZONE,
+    end_date TIMESTAMP WITH TIME ZONE,
+    is_active BOOLEAN DEFAULT true,
+    usage_count INTEGER DEFAULT 0 CHECK (usage_count >= 0),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
 );
 
@@ -268,6 +274,15 @@ CREATE TABLE public.store_settings (
     receipt_header TEXT,
     receipt_footer TEXT,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+);
+
+-- 6.6 Product-Supplier Links
+CREATE TABLE public.product_suppliers (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    product_id UUID NOT NULL REFERENCES public.products(id) ON DELETE CASCADE,
+    supplier_id UUID NOT NULL REFERENCES public.suppliers(id) ON DELETE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+    UNIQUE(product_id, supplier_id)
 );
 
 -- ==========================================
@@ -334,6 +349,7 @@ ALTER TABLE public.purchase_orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.purchase_order_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.expenses ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.store_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.product_suppliers ENABLE ROW LEVEL SECURITY;
 
 -- Note: In this application, web clients connect via 'anon' and use direct access.
 -- Real-world applications should restrict this!
@@ -359,6 +375,7 @@ CREATE POLICY "Allow all to public" ON public.purchase_orders FOR ALL USING (tru
 CREATE POLICY "Allow all to public" ON public.purchase_order_items FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all to public" ON public.expenses FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all to public" ON public.store_settings FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all to public" ON public.product_suppliers FOR ALL USING (true) WITH CHECK (true);
 
 -- ==========================================
 -- 9. SUPABASE REALTIME
@@ -376,7 +393,8 @@ DECLARE
     'e_customer',
     'e_cart',
     'online_order_items',
-    'sales_items'
+    'sales_items',
+    'product_suppliers'
   ];
   t TEXT;
 BEGIN

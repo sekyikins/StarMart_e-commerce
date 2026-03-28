@@ -35,7 +35,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <div className="h-8 w-8 rounded-lg bg-indigo-600 flex items-center justify-center shadow shadow-indigo-500/30">
               <ShoppingBag className="h-5 w-5 text-white" />
             </div>
-            <span className="text-xl font-black tracking-tight hidden sm:block">{storeName}</span>
+            <span className="text-xl font-bold tracking-tight hidden sm:block">{storeName}</span>
           </Link>
 
           {/* Search */}

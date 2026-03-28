@@ -27,26 +27,26 @@ function LoyaltyModal({ onClose }: { onClose: () => void }) {
             <Star className="h-10 w-10 text-indigo-900 fill-indigo-900" />
           </div>
         </div>
-        <h2 className="text-3xl font-black text-center mb-2">{storeName} Loyalty</h2>
+        <h2 className="text-3xl font-bold text-center mb-2">{storeName} Loyalty</h2>
         <p className="text-center text-muted-foreground mb-8 text-sm px-4">Your loyalty is recognized! Use your points for exclusive discounts and free deliveries on future orders.</p>
         
         <div className="space-y-4">
           <div className="p-5 rounded-2xl bg-muted/50 border border-border flex gap-4">
-            <div className="h-10 w-10 shrink-0 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-black">1</div>
+            <div className="h-10 w-10 shrink-0 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold">1</div>
             <div>
               <h4 className="font-bold text-sm">Welcome Gift</h4>
               <p className="text-xs text-muted-foreground mt-0.5">Get 100 free points instantly when you create your {storeName} account.</p>
             </div>
           </div>
           <div className="p-5 rounded-2xl bg-muted/50 border border-border flex gap-4">
-            <div className="h-10 w-10 shrink-0 rounded-xl bg-orange-500/10 text-orange-500 flex items-center justify-center font-black">2</div>
+            <div className="h-10 w-10 shrink-0 rounded-xl bg-orange-500/10 text-orange-500 flex items-center justify-center font-bold">2</div>
             <div>
               <h4 className="font-bold text-sm">Daily Purchase Bonus</h4>
               <p className="text-xs text-muted-foreground mt-0.5">Earn 50 points for every day you make a purchase, regardless of the order size.</p>
             </div>
           </div>
           <div className="p-5 rounded-2xl bg-muted/50 border border-border flex gap-4">
-            <div className="h-10 w-10 shrink-0 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center font-black">3</div>
+            <div className="h-10 w-10 shrink-0 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center font-bold">3</div>
             <div>
               <h4 className="font-bold text-sm">Exclusive Promos</h4>
               <p className="text-xs text-muted-foreground mt-0.5">Participate in monthly challenges to multiply your earnings and unlock higher tiers.</p>
@@ -99,7 +99,7 @@ function ProfileContent() {
         <div className="h-24 w-24 rounded-full bg-muted flex items-center justify-center mb-6">
           <User className="h-12 w-12 text-muted-foreground"/>
         </div>
-        <h2 className="text-2xl font-black mb-2">Access Denied</h2>
+        <h2 className="text-2xl font-bold mb-2">Access Denied</h2>
         <p className="text-muted-foreground mb-8">Please sign in to your {storeName} account to view your profile and order history.</p>
         <Link 
           href="/login" 
@@ -125,12 +125,12 @@ function ProfileContent() {
         
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="flex flex-wrap items-end gap-6 text-white">
-            <div className="h-32 w-32 rounded-3xl bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center text-5xl font-black shadow-2xl transition-transform hover:scale-105">
+            <div className="h-32 w-32 rounded-3xl bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center text-5xl font-bold shadow-2xl transition-transform hover:scale-105">
               {initial}
             </div>
             <div className="flex-1 mb-2">
               <div className="flex flex-wrap items-center gap-3 mb-1">
-                <h1 className="text-4xl font-black">{user.name}</h1>
+                <h1 className="text-4xl font-bold">{user.name}</h1>
                 <span className="px-3 py-1 rounded-full bg-white/20 backdrop-blur text-xs font-bold uppercase tracking-wider">
                   Member Since {memberYear}
                 </span>
@@ -148,8 +148,8 @@ function ProfileContent() {
                   <Star className="h-6 w-6 text-indigo-900 fill-indigo-900" />
                 </div>
                 <div>
-                  <div className="text-white/70 text-[10px] font-black uppercase tracking-tighter">Loyalty Points</div>
-                  <div className="text-2xl font-black leading-none mt-0.5">{user.loyalty_points} <span className="text-sm font-normal text-white/60">Pts</span></div>
+                  <div className="text-white/70 text-[10px] font-bold uppercase tracking-tighter">Loyalty Points</div>
+                  <div className="text-2xl font-bold leading-none mt-0.5">{user.loyalty_points} <span className="text-sm font-normal text-white/60">Pts</span></div>
                 </div>
               </div>
             </button>
@@ -258,21 +258,21 @@ function ProfileContent() {
                 <div className="h-10 w-10 rounded-xl bg-blue-100 dark:bg-blue-900/40 text-blue-600 flex items-center justify-center m-1 mb-4 ring-4 ring-blue-100 dark:ring-blue-900/40 group-hover:scale-110 transition-transform">
                   <ShoppingBag className="h-5 w-5" />
                 </div>
-                <div className="text-2xl font-black">{orders.length}</div>
+                <div className="text-2xl font-bold">{orders.length}</div>
                 <div className="text-muted-foreground text-xs font-bold uppercase tracking-wider">Total Orders</div>
               </div>
               <div className="bg-card p-6 rounded-4xl border-2 border-border shadow-2xl shadow-orange-500/20 hover:shadow-orange-500/30 transition-all group">
                 <div className="h-10 w-10 rounded-xl bg-orange-100 dark:bg-orange-900/40 text-orange-600 flex items-center justify-center m-1 mb-4 ring-4 ring-orange-100 dark:ring-orange-900/40 group-hover:scale-110 transition-transform">
                   <Clock className="h-5 w-5" />
                 </div>
-                <div className="text-2xl font-black">{orders.filter(o => o.status === 'PENDING').length}</div>
+                <div className="text-2xl font-bold">{orders.filter(o => o.status === 'PENDING').length}</div>
                 <div className="text-muted-foreground text-xs font-bold uppercase tracking-wider">Active Shipments</div>
               </div>
               <div className="col-span-2 md:col-span-1 bg-card p-6 rounded-4xl border-2 border-border shadow-2xl shadow-emerald-500/20 hover:shadow-emerald-500/30 transition-all group">
                 <div className="h-10 w-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 flex items-center justify-center m-1 mb-4 ring-4 ring-emerald-100 dark:ring-emerald-900/40 group-hover:scale-110 transition-transform">
                   <Star className="h-5 w-5" />
                 </div>
-                <div className="text-2xl font-black">Silver</div>
+                <div className="text-2xl font-bold">Silver</div>
                 <div className="text-muted-foreground text-xs font-bold uppercase tracking-wider">Loyalty Tier</div>
               </div>
             </div>
@@ -280,32 +280,32 @@ function ProfileContent() {
             {/* Personal Details Card */}
             <div className="bg-card rounded-4xl border-2 border-border overflow-hidden shadow-2xl shadow-indigo-500/15 mb-8">
               <div className="px-8 py-6 border-b-2 border-border flex items-center justify-between bg-muted/30 backdrop-blur-sm">
-                <h3 className="font-black text-xl">Personal Information</h3>
+                <h3 className="font-bold text-xl">Personal Information</h3>
                 <Link href="/settings" className="px-4 h-9 flex items-center rounded-full bg-primary/10 text-primary text-xs font-bold hover:bg-primary/20 transition-all gap-1">
                   Manage <span className='hidden md:block'>Settings</span> <ChevronRight className="h-3 w-3" />
                 </Link>
               </div>
               <div className="p-8 grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1.5 block">Full Name</label>
+                  <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1.5 block">Full Name</label>
                   <div className="text-foreground font-bold flex items-center gap-2">
                     <User className="h-4 w-4 text-primary opacity-50" /> {user.name}
                   </div>
                 </div>
                 <div>
-                  <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1.5 block">Email Address</label>
+                  <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1.5 block">Email Address</label>
                   <div className="text-foreground font-bold flex items-center gap-2">
                     <Mail className="h-4 w-4 text-primary opacity-50" /> {user.email}
                   </div>
                 </div>
                 <div>
-                  <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1.5 block">Mobile Phone</label>
+                  <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1.5 block">Mobile Phone</label>
                   <div className="text-foreground font-bold flex items-center gap-2">
                     <Phone className="h-4 w-4 text-primary opacity-50" /> {user.phone || 'Not provided'}
                   </div>
                 </div>
                 <div>
-                  <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1.5 block">Preferred Address</label>
+                  <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1.5 block">Preferred Address</label>
                   <div className="text-foreground font-bold flex flex-start gap-2">
                     <MapPin className="h-4 w-4 text-primary opacity-50" /> Default Address
                   </div>
@@ -316,7 +316,7 @@ function ProfileContent() {
             {/* Recent Orders Section */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="font-black text-xl px-2">Recent Orders</h3>
+                <h3 className="font-bold text-xl px-2">Recent Orders</h3>
                 <Link href="/orders" className="text-sm font-bold text-primary flex items-center gap-1 hover:gap-2 transition-all">
                   See Full History <ChevronRight className="h-4 w-4" />
                 </Link>
@@ -325,7 +325,7 @@ function ProfileContent() {
               {loadingOrders ? (
                 <div className="bg-card rounded-4xl p-12 text-center border-2 border-border border-dashed shadow-inner">
                   <div className="h-10 w-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-                  <p className="text-muted-foreground text-sm font-black uppercase tracking-widest">Updating Ledger...</p>
+                  <p className="text-muted-foreground text-sm font-bold uppercase tracking-widest">Updating Ledger...</p>
                 </div>
               ) : orders.length > 0 ? (
                 <div className="bg-card rounded-4xl border-2 border-border divide-y-2 divide-border overflow-hidden shadow-2xl shadow-indigo-500/15">
@@ -336,16 +336,16 @@ function ProfileContent() {
                           <ShoppingBag className="h-7 w-7 text-muted-foreground/80" />
                         </div>
                         <div>
-                          <div className="font-black text-base">Order #{order.id.slice(0, 8).toUpperCase()}</div>
-                          <div className="text-[11px] font-black text-muted-foreground uppercase opacity-70 tracking-tight">{new Date(order.createdAt).toLocaleDateString(undefined, { dateStyle: 'long' })}</div>
+                          <div className="font-bold text-base">Order #{order.id.slice(0, 8).toUpperCase()}</div>
+                          <div className="text-[11px] font-bold text-muted-foreground uppercase opacity-70 tracking-tight">{new Date(order.createdAt).toLocaleDateString(undefined, { dateStyle: 'long' })}</div>
                         </div>
                       </div>
                       <div className="flex items-center gap-8">
                         <div className="text-right hidden md:block">
-                          <div className="font-black text-2xl tracking-tighter">{currencySymbol}{order.totalAmount.toFixed(2)}</div>
-                          <div className="text-[10px] text-primary font-black uppercase tracking-widest">{order.items.length} items purchased</div>
+                          <div className="font-bold text-2xl tracking-tighter">{currencySymbol}{order.totalAmount.toFixed(2)}</div>
+                          <div className="text-[10px] text-primary font-bold uppercase tracking-widest">{order.items.length} items purchased</div>
                         </div>
-                        <div className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm border-2 ${
+                        <div className={`px-4 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-widest shadow-sm border-2 ${
                           order.status === 'DELIVERED' ? 'bg-emerald-50 text-emerald-600 border-emerald-100 shadow-emerald-500/10' :
                           order.status === 'PENDING' ? 'bg-orange-50 text-orange-600 border-orange-100 shadow-orange-500/10' :
                           'bg-blue-50 text-blue-600 border-blue-100 shadow-blue-500/10'
@@ -362,9 +362,9 @@ function ProfileContent() {
                   <div className="h-20 w-20 rounded-3xl bg-muted/50 border border-border flex items-center justify-center mx-auto mb-6 shadow-sm group-hover:rotate-12 transition-transform">
                     <ShoppingBag className="h-10 w-10 text-muted-foreground/40" />
                   </div>
-                  <h4 className="font-black text-2xl mb-2">No active orders</h4>
+                  <h4 className="font-bold text-2xl mb-2">No active orders</h4>
                   <p className="text-muted-foreground text-sm mb-8 max-w-[280px] mx-auto font-medium">Your current shopping bag is empty. Explore our latest collections to get started!</p>
-                  <Link href="/products" className="inline-flex h-14 px-10 rounded-2xl bg-primary text-white text-sm font-black items-center shadow-xl shadow-primary/30 hover:shadow-primary/50 hover:scale-[1.03] transition-all active:scale-95">Explore Storefront</Link>
+                  <Link href="/products" className="inline-flex h-14 px-10 rounded-2xl bg-primary text-white text-sm font-bold items-center shadow-xl shadow-primary/30 hover:shadow-primary/50 hover:scale-[1.03] transition-all active:scale-95">Explore Storefront</Link>
                 </div>
               )}
             </div>
@@ -383,7 +383,7 @@ function ProfileContent() {
                 <LogOut className="h-8 w-8" />
               </div>
             </div>
-            <h4 className="text-2xl font-black text-center mb-2">Sign Out</h4>
+            <h4 className="text-2xl font-bold text-center mb-2">Sign Out</h4>
             <p className="text-center text-muted-foreground mb-8 font-medium">Are you sure you want to sign out of your {storeName} account?</p>
             <div className="grid grid-cols-2 gap-3">
               <button 

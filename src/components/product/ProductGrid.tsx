@@ -45,16 +45,19 @@ export const ProductGrid: React.FC<ProductGridProps> = ({ products, onAddToCart,
       {products.map(product => {
         const outOfStock = product.quantity <= 0;
         const lowStock = !outOfStock && product.quantity <= 5;
+        const index = products.indexOf(product);
         return (
           <div key={product.id} className="bg-card rounded-2xl border border-border overflow-hidden flex flex-col group hover:border-primary/40 hover:shadow-xl hover:shadow-primary/10 transition-all duration-300">
             {/* Clickable image area → detail page */}
             <Link href={`/products/${product.id}`} className="block">
-              <div className={`aspect-square relative overflow-hidden flex items-center justify-center text-5xl font-black select-none ${outOfStock ? 'bg-muted text-muted-foreground/30' : 'bg-primary/5 text-primary/20 group-hover:bg-primary/10'} transition-colors duration-300`}>
-                {product.imageUrl ? (
+              <div className={`aspect-square relative overflow-hidden flex items-center justify-center text-5xl font-bold select-none ${outOfStock ? 'bg-muted text-muted-foreground/30' : 'bg-primary/5 text-primary/20 group-hover:bg-primary/10'} transition-colors duration-300`}>
+                {product.image_url ? (
                   <Image 
-                    src={product.imageUrl} 
+                    src={product.image_url} 
                     alt={product.name} 
                     fill
+                    sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
+                    priority={index < 5}
                     className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
                   />
                 ) : (
@@ -77,18 +80,18 @@ export const ProductGrid: React.FC<ProductGridProps> = ({ products, onAddToCart,
               </Link>
 
               {lowStock && (
-                <p className="text-[10px] text-warning font-black mb-2 bg-warning/10 px-2 py-0.5 rounded-md inline-block w-fit">
+                <p className="text-[10px] text-warning font-bold mb-2 bg-warning/10 px-2 py-0.5 rounded-md inline-block w-fit">
                   Only {product.quantity} left!
                 </p>
               )}
 
               <div className="flex items-center justify-between mt-3 pt-3 border-t border-border gap-2">
-                <span className="text-xl font-black text-foreground">{currencySymbol}{product.price.toFixed(2)}</span>
+                <span className="text-xl font-bold text-foreground">{currencySymbol}{product.price.toFixed(2)}</span>
                 {/* Conspicuous "Add to Cart" button */}
                 <button
                   onClick={(e) => { e.preventDefault(); onAddToCart(product); }}
                   disabled={outOfStock}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-black hover:bg-primary/90 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/90 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40"
                 >
                   <Plus className="h-3.5 w-3.5 shrink-0" />
                   <span className="hidden sm:inline">Add</span>

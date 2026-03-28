@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { Product, CartItem, Order, OrderItem, StorefrontUser, StoreSettings } from './types';
+import { Product, CartItem, Order, OrderItem, StorefrontUser, StoreSettings, Review } from './types';
 import bcrypt from 'bcryptjs';
 
 export async function getStoreSettings(): Promise<StoreSettings> {
@@ -31,12 +31,13 @@ function toProduct(row: any): Product {
   return {
     id: row.id,
     name: row.name,
-    category: row.category,
+    categoryId: row.category_id || row.category,
+    category: row.categories?.name || row.category || 'Uncategorized',
     price: Number(row.price),
     quantity: row.quantity,
     barcode: row.barcode,
     description: row.description ?? undefined,
-    imageUrl: row.product_images?.[0]?.image_url || row.image_url || undefined,
+    image_url: row.product_images?.[0]?.image_url || row.image_url || undefined,
   };
 }
 
@@ -81,23 +82,22 @@ function toDeliveryPoint(row: any) {
 
 // ─── Products (shared with POS) ───────────────────────────────────────────────
 export async function getProducts(): Promise<Product[]> {
-  const { data, error } = await supabase.from('products').select('*, product_images(image_url)').order('name');
+  const { data, error } = await supabase.from('products').select('*, product_images(image_url), categories(name)').order('name');
   if (error) throw error;
   return (data ?? []).map(toProduct);
 }
 
 export async function getProductsByCategory(category: string): Promise<Product[]> {
   const { data, error } = await supabase
-    .from('products').select('*, product_images(image_url)').eq('category', category).order('name');
+    .from('products').select('*, product_images(image_url), categories(name)').eq('category', category).order('name');
   if (error) throw error;
   return (data ?? []).map(toProduct);
 }
 
 export async function getCategories(): Promise<string[]> {
-  const { data, error } = await supabase.from('products').select('category');
+  const { data, error } = await supabase.from('categories').select('name');
   if (error) throw error;
-  const raw = (data ?? []).map((r: { category: string }) => r.category);
-  return [...new Set(raw)].sort();
+  return (data ?? []).map((r: { name: string }) => r.name).sort();
 }
 
 // ─── Delivery Points ──────────────────────────────────────────────────────────
@@ -261,14 +261,22 @@ export async function cancelOrder(orderId: string) {
 
 
 // ─── Reviews ──────────────────────────────────────────────────────────────────
-export async function getReviews(productId: string) {
+export async function getReviews(productId: string): Promise<Review[]> {
   const { data, error } = await supabase
     .from('product_reviews')
     .select('*, e_customer(name)')
     .eq('product_id', productId)
     .order('created_at', { ascending: false });
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []).map((r) => ({
+    id: r.id,
+    productId: r.product_id,
+    customerId: r.e_customer_id,
+    customerName: (r.e_customer as any)?.name || 'Anonymous',
+    rating: r.rating,
+    comment: r.comment,
+    createdAt: r.created_at
+  })) as Review[];
 }
 
 export async function addReview(productId: string, storefrontUserId: string, rating: number, comment: string) {

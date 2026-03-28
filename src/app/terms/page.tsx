@@ -19,7 +19,7 @@ function TermsContent() {
             <Shield className="h-3 w-3" />
             Terms of Service
           </div>
-          <h1 className="text-4xl md:text-5xl font-black mb-4 tracking-tight">Terms and Conditions</h1>
+          <h1 className="text-4xl md:text-5xl font-bold mb-4 tracking-tight">Terms and Conditions</h1>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">Updated March 25, 2026. Please read our terms carefully before using our services.</p>
         </div>
 
@@ -68,7 +68,7 @@ function TermsContent() {
 
             <section className="space-y-4">
                <div className="flex items-center gap-3 border-l-4 border-primary pl-4 py-2 bg-primary/5 rounded-r-2xl">
-                 <h2 className="text-lg font-black uppercase tracking-tight">Important Notice</h2>
+                 <h2 className="text-lg font-bold uppercase tracking-tight">Important Notice</h2>
                </div>
                <p className="text-muted-foreground leading-relaxed italics opacity-80">
                   {storeName} reserves the right to modify these terms at any time. Continued use of the platform after updates constitutes acceptance of the revised terms.

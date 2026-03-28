@@ -9,11 +9,11 @@ import { getProducts, getCategories } from '@/lib/db';
 import { Product } from '@/lib/types';
 import { SlidersHorizontal, Search } from 'lucide-react';
 
+import { useRealtimeTable } from '@/hooks/useRealtimeTable';
+
 function StorefrontContent() {
-  const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [categorySearch, setCategorySearch] = useState('');
-  const [isLoadingProducts, setIsLoadingProducts] = useState(true);
   const [search, setSearch] = useState('');
   const [selectedCat, setSelectedCat] = useState('');
   const [sortBy, setSortBy] = useState<'name' | 'price_asc' | 'price_desc'>('name');
@@ -21,10 +21,15 @@ function StorefrontContent() {
   const cart = useCartStore();
   const { addToast, toasts } = useToastStore();
 
+  const { data: products, isLoading: isLoadingProducts } = useRealtimeTable<Product>({
+    table: 'products',
+    initialData: [],
+    fetcher: getProducts,
+    refetchOnChange: true
+  });
+
   useEffect(() => {
-    const p1 = getProducts().then(setProducts);
-    const p2 = getCategories().then(setCategories);
-    Promise.all([p1, p2]).catch(console.error).finally(() => setIsLoadingProducts(false));
+    getCategories().then(setCategories).catch(console.error);
   }, []);
 
   const filtered = products
@@ -50,7 +55,7 @@ function StorefrontContent() {
 
       {/* Hero */}
       <div className="bg-linear-to-br from-indigo-600 via-indigo-700 to-violet-800 text-white py-16 px-4 text-center">
-        <h1 className="text-4xl sm:text-5xl font-black mb-3 tracking-tight">Shop Everything</h1>
+        <h1 className="text-4xl sm:text-5xl font-bold mb-3 tracking-tight">Shop Everything</h1>
         <p className="text-indigo-200 text-lg max-w-md mx-auto">Discover our full catalogue of quality products, delivered to your door.</p>
       </div>
 

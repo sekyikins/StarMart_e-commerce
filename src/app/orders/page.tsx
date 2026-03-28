@@ -29,7 +29,7 @@ function ConnectionPill({ status }: { status: ConnectionStatus }) {
   }[status];
   const Icon = map.icon;
   return (
-    <span className={`inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border ${map.cls}`}>
+    <span className={`inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full border ${map.cls}`}>
       <Icon className="h-3 w-3" />{map.label}
     </span>
   );
@@ -61,20 +61,20 @@ function OrderCard({ order, onUpdate }: { order: Order; onUpdate: () => void }) 
     <div className="bg-card rounded-2xl border border-border overflow-hidden transition-all shadow-sm hover:shadow-md">
       <div className="flex items-center justify-between p-4 border-b border-border bg-muted/20">
         <div>
-          <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">ORDER ID</p>
+          <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">ORDER ID</p>
           <p className="text-sm font-bold mt-0.5 truncate max-w-[120px]">#{order.id.slice(-8).toUpperCase()}</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="text-right">
-            <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">STATUS</p>
-            <span className={`flex items-center justify-end gap-1.5 text-[10px] font-black uppercase tracking-tighter mt-0.5 ${meta.color.split(' ')[0]}`}>
+            <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">STATUS</p>
+            <span className={`flex items-center justify-end gap-1.5 text-[10px] font-bold uppercase tracking-tighter mt-0.5 ${meta.color.split(' ')[0]}`}>
               <meta.Icon className="h-3 w-3"/>{meta.label}
             </span>
           </div>
           <div className="h-10 w-px bg-border mx-1" />
           <div className="text-right">
-            <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">TOTAL</p>
-            <p className="font-black text-lg mt-0.5 text-foreground">{useSettingsStore.getState().currencySymbol}{order.totalAmount.toFixed(2)}</p>
+            <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">TOTAL</p>
+            <p className="font-bold text-lg mt-0.5 text-foreground">{useSettingsStore.getState().currencySymbol}{order.totalAmount.toFixed(2)}</p>
           </div>
         </div>
       </div>
@@ -88,7 +88,7 @@ function OrderCard({ order, onUpdate }: { order: Order; onUpdate: () => void }) 
           <button 
             onClick={handleCancel}
             disabled={cancelling}
-            className="text-[10px] font-black text-destructive hover:underline disabled:opacity-50 uppercase tracking-widest"
+            className="text-[10px] font-bold text-destructive hover:underline disabled:opacity-50 uppercase tracking-widest"
           >
             {cancelling ? 'CANCELLING...' : 'CANCEL ORDER'}
           </button>
@@ -99,7 +99,7 @@ function OrderCard({ order, onUpdate }: { order: Order; onUpdate: () => void }) 
         {(order.items ?? []).map((item: OrderItem) => (
           <div key={item.id} className="flex justify-between text-sm items-center">
             <div className="flex items-center gap-2">
-              <div className="h-6 w-6 rounded bg-muted flex items-center justify-center text-[10px] font-black text-muted-foreground uppercase">{item.productName.charAt(0)}</div>
+              <div className="h-6 w-6 rounded bg-muted flex items-center justify-center text-[10px] font-bold text-muted-foreground uppercase">{item.productName.charAt(0)}</div>
               <span className="text-foreground/80 font-medium">{item.productName} <span className="text-muted-foreground text-xs ml-1 font-bold">×{item.quantity}</span></span>
             </div>
             <span className="font-bold text-foreground">{useSettingsStore.getState().currencySymbol}{item.subtotal.toFixed(2)}</span>
@@ -148,7 +148,7 @@ function OrdersContent() {
       <Navbar onCartToggle={() => setIsCartOpen(true)} />
       <div className="max-w-3xl mx-auto w-full px-4 py-10">
         <div className="flex items-center justify-between mb-2">
-          <h1 className="text-3xl font-black text-foreground">My Orders</h1>
+          <h1 className="text-3xl font-bold text-foreground">My Orders</h1>
           <ConnectionPill status={connectionStatus} />
         </div>
         <p className="text-muted-foreground text-sm mb-8">Track and review your recent orders — updates arrive instantly.</p>
@@ -169,7 +169,7 @@ function OrdersContent() {
         ) : orders.length === 0 ? (
           <div className="text-center py-20 bg-card rounded-3xl border border-border border-dashed">
             <Package className="h-16 w-16 mx-auto mb-4 text-muted-foreground/30"/>
-            <p className="font-black text-xl text-foreground">No orders yet</p>
+            <p className="font-bold text-xl text-foreground">No orders yet</p>
             <Link href="/" className="mt-4 inline-block text-primary font-bold hover:underline text-sm">Start shopping →</Link>
           </div>
         ) : (
