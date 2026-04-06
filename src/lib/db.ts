@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { Product, CartItem, Order, OrderItem, StorefrontUser, StoreSettings, Review } from './types';
+import { Product, CartItem, Order, OrderItem, StorefrontUser, StoreSettings, Review, Promotion } from './types';
 import bcrypt from 'bcryptjs';
 
 export async function getStoreSettings(): Promise<StoreSettings> {
@@ -52,6 +52,7 @@ function toOrder(row: any): Order {
     status: row.status,
     paymentMethod: row.payment_method,
     paymentReference: row.payment_reference,
+    promoName: row.promo_name,
     createdAt: row.created_at,
     items: (row.online_order_items ?? []).map(toOrderItem),
   };
@@ -109,6 +110,13 @@ export async function getDeliveryPoints() {
 }
 
 // ─── Auth (storefront users) ──────────────────────────────────────────────────
+export async function getStorefrontUserById(id: string) {
+  const { data, error } = await supabase
+    .from('e_customer').select('*').eq('id', id).maybeSingle();
+  if (error || !data) return null;
+  return data;
+}
+
 export async function getStorefrontUserByEmail(email: string) {
   const { data, error } = await supabase
     .from('e_customer').select('*').eq('email', email.toLowerCase()).maybeSingle();
@@ -143,6 +151,8 @@ export async function placeOrder(orderData: {
   totalAmount: number;
   paymentMethod: string;
   items: { productId: string; productName: string; price: number; quantity: number; subtotal: number }[];
+  promoName?: string;
+  promoCode?: string;
 }) {
   const { data: orderRow, error: orderErr } = await supabase
     .from('online_orders')
@@ -152,6 +162,7 @@ export async function placeOrder(orderData: {
       delivery_address: orderData.deliveryAddress ?? null,
       total_amount: orderData.totalAmount,
       payment_method: orderData.paymentMethod,
+      promo_name: orderData.promoName ?? null,
       status: 'PENDING',
     }).select().single();
   if (orderErr) throw orderErr;
@@ -187,6 +198,14 @@ export async function placeOrder(orderData: {
   // 3. Clear persistent cart
   if (orderData.storefrontUserId) {
     await supabase.from('e_cart').delete().eq('e_customer_id', orderData.storefrontUserId);
+  }
+
+  // Handle Promotion Usage Count
+  if (orderData.promoCode) {
+    const { data: promo } = await supabase.from('promotions').select('id, usage_count').eq('code', orderData.promoCode).single();
+    if (promo) {
+      await supabase.from('promotions').update({ usage_count: (promo.usage_count || 0) + 1 }).eq('id', promo.id);
+    }
   }
 
   // 4. Update Loyalty Points (50 pts per purchase day)
@@ -259,6 +278,31 @@ export async function cancelOrder(orderId: string) {
   }
 }
 
+// ─── Promotions ───────────────────────────────────────────────────────────────
+export async function getPromotionByCode(code: string): Promise<Promotion | null> {
+  const { data, error } = await supabase
+    .from('promotions')
+    .select('*')
+    .eq('code', code)
+    .eq('is_active', true)
+    .maybeSingle();
+
+  if (error || !data) return null;
+  return {
+    id: data.id,
+    name: data.name,
+    code: data.code,
+    discountType: data.discount_type,
+    discountValue: Number(data.discount_value),
+    isActive: data.is_active,
+    minSubtotal: data.min_subtotal ? Number(data.min_subtotal) : undefined,
+    startDate: data.start_date || undefined,
+    endDate: data.end_date || undefined,
+    usageCount: data.usage_count,
+    createdAt: data.created_at,
+  };
+}
+
 
 // ─── Reviews ──────────────────────────────────────────────────────────────────
 export async function getReviews(productId: string): Promise<Review[]> {
@@ -272,9 +316,9 @@ export async function getReviews(productId: string): Promise<Review[]> {
     id: r.id,
     productId: r.product_id,
     customerId: r.e_customer_id,
-    customerName: (r.e_customer as any)?.name || 'Anonymous',
+    customerName: (r.e_customer as { name: string } | null)?.name || 'Anonymous',
     rating: r.rating,
-    comment: r.comment,
+    comment: r.comment || undefined,
     createdAt: r.created_at
   })) as Review[];
 }

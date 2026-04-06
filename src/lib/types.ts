@@ -59,6 +59,7 @@ export interface Order {
   status: 'PENDING' | 'CONFIRMED' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';
   paymentMethod: 'ONLINE_PAYMENT' | 'PAY_ON_DELIVERY' | 'MOBILE_MONEY' | 'CASH_ON_DELIVERY' | 'CARD' | 'CASH';
   paymentReference?: string;
+  promoName?: string;
   createdAt: string;
 }
 
@@ -88,5 +89,19 @@ export interface Review {
   customerName: string;
   rating: number; // 1-5
   comment?: string;
+  createdAt: string;
+}
+
+export interface Promotion {
+  id: string;
+  name: string;
+  code: string;
+  discountType: 'FLAT' | 'PERCENT';
+  discountValue: number;
+  isActive: boolean;
+  minSubtotal?: number;
+  startDate?: string;
+  endDate?: string;
+  usageCount: number;
   createdAt: string;
 }

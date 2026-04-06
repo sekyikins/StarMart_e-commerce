@@ -6,7 +6,7 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { CartDrawer } from '@/components/cart/CartDrawer';
 import { useRouter } from 'next/navigation';
-import { Package, Clock, CheckCircle2, XCircle, Truck, AlertCircle, CreditCard, MapPin, Wifi, WifiOff } from 'lucide-react';
+import { Package, Clock, CheckCircle2, XCircle, Truck, AlertCircle, CreditCard, MapPin, Wifi, WifiOff, Copy } from 'lucide-react';
 import Link from 'next/link';
 import { useToastStore, useSettingsStore } from '@/lib/store';
 import { Order, OrderItem } from '@/lib/types';
@@ -39,6 +39,14 @@ function OrderCard({ order, onUpdate }: { order: Order; onUpdate: () => void }) 
   const meta = STATUS_META[order.status] ?? { label: order.status, color: '', Icon: AlertCircle, desc: '' };
   const { addToast } = useToastStore();
   const [cancelling, setCancelling] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const copyOrderId = () => {
+    navigator.clipboard.writeText(order.id.slice(-8).toUpperCase());
+    setCopied(true);
+    addToast('Order ID copied!', 'success');
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const handleCancel = async () => {
     if (!window.confirm('Are you sure you want to cancel this order?')) return;
@@ -62,7 +70,14 @@ function OrderCard({ order, onUpdate }: { order: Order; onUpdate: () => void }) 
       <div className="flex items-center justify-between p-4 border-b border-border bg-muted/20">
         <div>
           <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">ORDER ID</p>
-          <p className="text-sm font-bold mt-0.5 truncate max-w-[120px]">#{order.id.slice(-8).toUpperCase()}</p>
+          <button 
+            onClick={copyOrderId} 
+            className="flex items-center gap-1.5 text-sm font-bold mt-0.5 hover:text-primary transition-colors text-left"
+            title="Click to copy full Order ID"
+          >
+            #{order.id.slice(-8).toUpperCase()}
+            {copied ? <CheckCircle2 className="h-3 w-3 text-success" /> : <Copy className="h-3 w-3 opacity-50" />}
+          </button>
         </div>
         <div className="flex items-center gap-3">
           <div className="text-right">
@@ -72,9 +87,14 @@ function OrderCard({ order, onUpdate }: { order: Order; onUpdate: () => void }) 
             </span>
           </div>
           <div className="h-10 w-px bg-border mx-1" />
-          <div className="text-right">
+          <div className="text-right flex flex-col items-end">
             <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">TOTAL</p>
-            <p className="font-bold text-lg mt-0.5 text-foreground">{useSettingsStore.getState().currencySymbol}{order.totalAmount.toFixed(2)}</p>
+            <p className="font-bold text-lg mt-0.5 text-foreground leading-none">{useSettingsStore.getState().currencySymbol}{order.totalAmount.toFixed(2)}</p>
+            {order.promoName && (
+               <div className="text-[9px] font-bold text-success uppercase tracking-widest mt-1.5 bg-success/10 px-1.5 py-0.5 rounded-sm flex items-center gap-1">
+                 {order.promoName}
+               </div>
+            )}
           </div>
         </div>
       </div>

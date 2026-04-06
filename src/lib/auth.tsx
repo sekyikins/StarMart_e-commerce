@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useSyncExternalStore, startTransition } from 'react';
-import { getStorefrontUserByEmail, getPersistentCart, deleteStorefrontAccount } from './db';
+import { getStorefrontUserByEmail, getStorefrontUserById, getPersistentCart, deleteStorefrontAccount } from './db';
 import { useCartStore } from './store';
 import bcrypt from 'bcryptjs';
 
@@ -32,6 +32,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // Track hydration state using the same modern pattern as ThemeToggle
   const isMounted = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
+  const syncCart = async (userId: string) => {
+    const items = await getPersistentCart(userId);
+    if (items && items.length > 0) {
+      useCartStore.getState().setItems(items);
+    }
+  };
+
+  const logout = () => {
+    setUser(null);
+    localStorage.removeItem('ec_user');
+    useCartStore.getState().setItems([]);
+  };
+
   useEffect(() => {
     if (!isMounted) return;
 
@@ -39,17 +52,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (stored) {
       try { 
         const parsed = JSON.parse(stored);
-        // Wrapping in startTransition ensures this doesn't count as a synchronous cascading render
-        startTransition(() => {
-          setUser(parsed);
+        
+        // Verify with database that the user hasn't been deleted/reset
+        getStorefrontUserById(parsed.id).then((dbUser) => {
+           if (!dbUser) {
+             logout();
+             return;
+           }
+           
+           startTransition(() => {
+             setUser(parsed);
+           });
+           
+           getPersistentCart(parsed.id).then(items => {
+             if (items && items.length > 0) {
+               useCartStore.getState().setItems(items);
+             }
+           });
+        }).catch(() => {
+           logout();
         });
         
-        // Sync cart on initial load
-        getPersistentCart(parsed.id).then(items => {
-          if (items && items.length > 0) {
-            useCartStore.getState().setItems(items);
-          }
-        });
       } catch { 
         localStorage.removeItem('ec_user'); 
       }
@@ -58,13 +81,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Derive loading state from hydration status
   const isLoading = !isMounted;
-
-  const syncCart = async (userId: string) => {
-    const items = await getPersistentCart(userId);
-    if (items && items.length > 0) {
-      useCartStore.getState().setItems(items);
-    }
-  };
 
   const login = async (email: string, password: string): Promise<boolean> => {
     const dbUser = await getStorefrontUserByEmail(email);
@@ -79,12 +95,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     localStorage.setItem('ec_user', JSON.stringify(u));
     await syncCart(u.id);
     return true;
-  };
-
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('ec_user');
-    useCartStore.getState().setItems([]);
   };
 
   const refreshUser = (u: StorefrontUser) => {

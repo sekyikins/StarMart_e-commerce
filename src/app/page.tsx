@@ -54,14 +54,14 @@ function StorefrontContent() {
       <Navbar onCartToggle={() => setIsCartOpen(true)} searchQuery={search} onSearchChange={setSearch} showSearch />
 
       {/* Hero */}
-      <div className="bg-linear-to-br from-indigo-600 via-indigo-700 to-violet-800 text-white py-16 px-4 text-center">
+      <div className="bg-linear-to-br from-indigo-600 via-indigo-700 to-violet-800 text-white py-12 px-4 text-center">
         <h1 className="text-4xl sm:text-5xl font-bold mb-3 tracking-tight">Shop Everything</h1>
         <p className="text-indigo-200 text-lg max-w-md mx-auto">Discover our full catalogue of quality products, delivered to your door.</p>
       </div>
 
       <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
         {/* Modern Filter Engine UI */}
-        <div className="flex flex-col space-y-4 mb-8">
+        <div className="flex flex-col space-y-4 mb-5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-2">
               <div className="p-2 bg-primary/10 rounded-lg">

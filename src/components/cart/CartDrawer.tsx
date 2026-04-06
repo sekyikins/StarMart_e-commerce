@@ -1,9 +1,10 @@
 'use client';
 import React, { useState } from 'react';
-import { useCartStore, useSettingsStore } from '@/lib/store';
+import { useCartStore, useSettingsStore, useToastStore } from '@/lib/store';
 import { useAuth } from '@/lib/auth';
-import { placeOrder, getDeliveryPoints } from '@/lib/db';
-import { X, Minus, Plus, ShoppingBag, MapPin, CreditCard, Smartphone, CheckCircle2, Package, Copy, ChevronLeft, ArrowRight, Loader2, Search, type LucideIcon } from 'lucide-react';
+import { placeOrder, getDeliveryPoints, getPromotionByCode } from '@/lib/db';
+import { Promotion } from '@/lib/types';
+import { X, Minus, Plus, ShoppingBag, MapPin, CreditCard, Smartphone, CheckCircle2, Package, Copy, ChevronLeft, ArrowRight, Loader2, Search, AlertCircle, Tag, type LucideIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 
@@ -12,12 +13,13 @@ interface CartDrawerProps {
   onClose: () => void;
 }
 
-type CheckoutStep = 'CART' | 'DELIVERY' | 'PAYMENT' | 'SUMMARY' | 'SUCCESS';
+type CheckoutStep = 'CART' | 'DELIVERY' | 'PROMO' | 'PAYMENT' | 'SUMMARY' | 'SUCCESS';
 
 export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
   const cart = useCartStore();
   const { user } = useAuth();
   const { currencySymbol, storeName } = useSettingsStore();
+  const { addToast } = useToastStore();
   const router = useRouter();
   const [step, setStep] = useState<CheckoutStep>('CART');
   const [deliveryPoints, setDeliveryPoints] = React.useState<{ id: string; name: string; address: string }[]>([]);
@@ -29,19 +31,74 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
   const [orderId, setOrderId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
+  const [promoCodeInput, setPromoCodeInput] = useState('');
+  const [appliedPromo, setAppliedPromo] = useState<Promotion | null>(null);
+  const [promoError, setPromoError] = useState('');
+  const [isApplyingPromo, setIsApplyingPromo] = useState(false);
+
+  const subtotal = cart.getTotal();
+  let promoDiscount = 0;
+  if (appliedPromo) {
+    if (appliedPromo.discountType === 'PERCENT') {
+      promoDiscount = subtotal * (appliedPromo.discountValue / 100);
+    } else {
+      promoDiscount = appliedPromo.discountValue;
+    }
+  }
+  const finalTotal = Math.max(0, subtotal - promoDiscount);
+
   React.useEffect(() => {
     if (isOpen && step === 'DELIVERY') {
       getDeliveryPoints().then(setDeliveryPoints).catch(console.error);
     }
   }, [isOpen, step]);
 
+  React.useEffect(() => {
+    if (step === 'SUCCESS') {
+      const timer = setTimeout(() => {
+        setStep('CART');
+        onClose();
+      }, 10000);
+      return () => clearTimeout(timer);
+    }
+  }, [step, onClose]);
+
   const handleStartCheckout = () => {
     if (!user) {
       onClose();
-      router.push('/login?next=checkout');
+      // Safely return the user to the page they were on instead of a non-existent checkout route
+      const returnUrl = window.location.pathname !== '/login' ? window.location.pathname : '/';
+      router.push(`/login?next=${encodeURIComponent(returnUrl)}`);
       return;
     }
     setStep('DELIVERY');
+  };
+
+  const handleApplyPromo = async () => {
+    if (!promoCodeInput) return;
+    setIsApplyingPromo(true);
+    setPromoError('');
+    try {
+      const promo = await getPromotionByCode(promoCodeInput);
+      if (!promo) {
+        setPromoError('Invalid or inactive promo code');
+      } else if (promo.minSubtotal && subtotal < promo.minSubtotal) {
+        setPromoError(`Minimum order amount of ${currencySymbol}${promo.minSubtotal.toFixed(2)} required`);
+      } else {
+        setAppliedPromo(promo);
+        setPromoCodeInput('');
+      }
+    } catch (err) {
+      console.error(err);
+      setPromoError('Failed to verify promo code');
+    } finally {
+      setIsApplyingPromo(false);
+    }
+  };
+
+  const handleRemovePromo = () => {
+    setAppliedPromo(null);
+    setPromoError('');
   };
 
   const handlePlaceOrder = async () => {
@@ -52,15 +109,21 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
         storefrontUserId: user.id,
         deliveryPointId: useCustomAddress ? undefined : selectedDeliveryPoint || undefined,
         deliveryAddress: useCustomAddress ? customAddress : undefined,
-        totalAmount: cart.getTotal(),
+        totalAmount: finalTotal,
         paymentMethod,
+        promoName: appliedPromo?.name,
+        promoCode: appliedPromo?.code,
         items: cart.items.map(i => ({ productId: i.productId, productName: i.productName, price: i.price, quantity: i.quantity, subtotal: i.subtotal })),
       });
       setOrderId(order.id);
       cart.clearCart(user.id);
+      setAppliedPromo(null);
+      addToast('Order placed successfully!', 'success');
       setStep('SUCCESS');
     } catch (err) {
       console.error(err);
+      const msg = err instanceof Error ? err.message : 'Failed to place order. Please try again.';
+      addToast(msg, 'error');
     } finally {
       setIsProcessing(false);
     }
@@ -80,6 +143,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
     const titles: Record<CheckoutStep, { icon: LucideIcon; text: string }> = {
       CART: { icon: ShoppingBag, text: 'Your Cart' },
       DELIVERY: { icon: MapPin, text: 'Delivery' },
+      PROMO: { icon: Tag, text: 'Promotions' },
       PAYMENT: { icon: CreditCard, text: 'Payment' },
       SUMMARY: { icon: Package, text: 'Review' },
       SUCCESS: { icon: CheckCircle2, text: 'Success' },
@@ -94,7 +158,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
             <button 
               onClick={() => {
                 if (step === 'DELIVERY') setStep('CART');
-                if (step === 'PAYMENT') setStep('DELIVERY');
+                if (step === 'PROMO') setStep('DELIVERY');
+                if (step === 'PAYMENT') setStep('PROMO');
                 if (step === 'SUMMARY') setStep('PAYMENT');
               }}
               className="p-2 -ml-2 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground transition-all active:scale-90"
@@ -117,15 +182,17 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
   return (
     <>
       <div className={`fixed inset-0 z-50 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} onClick={onClose} />
-      <div className={`fixed inset-y-0 right-0 z-50 w-full sm:w-[480px] bg-background flex flex-col shadow-2xl transition-transform duration-500 cubic-bezier(0.4, 0, 0.2, 1) ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+      <div className={`fixed inset-y-0 right-0 z-50 w-full sm:w-[480px] bg-background flex flex-col shadow-2xl transition-transform duration-500 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
         {renderHeader()}
 
         {/* STEPPER PROGRESS (only during checkout) */}
         {step !== 'CART' && step !== 'SUCCESS' && (
           <div className="px-6 py-3 bg-card/30 border-b border-border flex justify-between gap-2 overflow-hidden shrink-0">
-            {['DELIVERY', 'PAYMENT', 'SUMMARY'].map((s, idx) => {
+            {['DELIVERY', 'PROMO', 'PAYMENT', 'SUMMARY'].map((s, idx) => {
               const isActive = step === s;
-              const isPast = (step === 'PAYMENT' && s === 'DELIVERY') || (step === 'SUMMARY' && (s === 'DELIVERY' || s === 'PAYMENT'));
+              const isPast = (step === 'PROMO' && s === 'DELIVERY') || 
+                             (step === 'PAYMENT' && (s === 'DELIVERY' || s === 'PROMO')) || 
+                             (step === 'SUMMARY' && (s === 'DELIVERY' || s === 'PROMO' || s === 'PAYMENT'));
               return (
                 <div key={s} className="flex-1 flex flex-col gap-1.5">
                    <div className={`h-1.5 rounded-full transition-all duration-500 ${isActive ? 'bg-primary w-full' : isPast ? 'bg-success w-full' : 'bg-muted w-2'}`} />
@@ -237,7 +304,39 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
             </div>
           )}
 
-          {/* 3. PAYMENT PAGE */}
+          {/* 3. PROMO PAGE */}
+          {step === 'PROMO' && (
+            <div className="p-6 space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
+                  {/* Promo Section */}
+                  <div className="space-y-4">
+                     <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] px-2">Promotion</span>
+                     <div className="bg-card rounded-2xl p-4 border-2 border-border shadow-sm flex flex-col gap-3">
+                       {!appliedPromo ? (
+                         <div className="flex gap-2">
+                           <input type="text" value={promoCodeInput} onChange={e => {setPromoCodeInput(e.target.value.toUpperCase()); setPromoError('');}} placeholder="Enter promo code..." className="flex-1 rounded-xl border-2 border-border bg-background px-4 text-sm font-bold focus:border-primary outline-none transition-colors uppercase h-12" />
+                           <button onClick={handleApplyPromo} disabled={!promoCodeInput || isApplyingPromo} className="px-5 rounded-xl bg-primary text-white font-bold text-sm hover:opacity-90 disabled:opacity-50 transition-all flex items-center justify-center min-w-[100px]">
+                             {isApplyingPromo ? <Loader2 className="h-4 w-4 animate-spin"/> : 'APPLY'}
+                           </button>
+                         </div>
+                       ) : (
+                         <div className="flex items-center justify-between p-3 bg-success/10 border-2 border-success/20 rounded-xl">
+                           <div className="flex items-center gap-3">
+                             <CheckCircle2 className="h-6 w-6 text-success" />
+                             <div>
+                               <p className="text-sm font-bold text-success leading-tight">{appliedPromo.name}</p>
+                               <p className="text-[10px] uppercase font-bold text-success/80 tracking-widest mt-0.5">Active Promotion</p>
+                             </div>
+                           </div>
+                           <button onClick={handleRemovePromo} className="p-2 bg-success/10 rounded-lg text-success/70 hover:bg-destructive/10 hover:text-destructive transition-colors"><X className="h-5 w-5"/></button>
+                         </div>
+                       )}
+                       {promoError && <p className="text-xs font-bold text-destructive px-1 flex items-center gap-1"><AlertCircle className="h-3 w-3"/>{promoError}</p>}
+                     </div>
+                  </div>
+            </div>
+          )}
+
+          {/* 4. PAYMENT PAGE */}
           {step === 'PAYMENT' && (
             <div className="p-6 space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
                <div className="space-y-4">
@@ -288,7 +387,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
             </div>
           )}
 
-          {/* 4. SUMMARY PAGE */}
+          {/* 5. SUMMARY PAGE */}
           {step === 'SUMMARY' && (
             <div className="p-6 space-y-8 animate-in fade-in slide-in-from-right-4 duration-300 pb-24">
                <div className="space-y-4">
@@ -336,13 +435,23 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                             <span className="font-bold text-foreground text-sm">{useSettingsStore.getState().currencySymbol}{item.subtotal.toFixed(2)}</span>
                           </div>
                         ))}
+                        {appliedPromo && (
+                           <div className="flex justify-between items-center p-3 rounded-2xl bg-success/10 mt-2 border border-success/20">
+                             <span className="font-bold text-success text-sm truncate max-w-[240px]">Deduction: {appliedPromo.name}</span>
+                             <span className="font-bold text-success text-sm">-{useSettingsStore.getState().currencySymbol}{promoDiscount.toFixed(2)}</span>
+                           </div>
+                        )}
+                        <div className="flex justify-between items-center p-3 mt-2 border-t-2 border-border/50">
+                           <span className="font-black text-foreground tracking-tight text-base">FINAL TOTAL</span>
+                           <span className="font-black text-primary text-lg">{useSettingsStore.getState().currencySymbol}{finalTotal.toFixed(2)}</span>
+                        </div>
                      </div>
                   </div>
                </div>
             </div>
           )}
 
-          {/* 5. SUCCESS PAGE */}
+          {/* 6. SUCCESS PAGE */}
           {step === 'SUCCESS' && (
             <div className="min-h-full flex flex-col items-center justify-center p-8 animate-in zoom-in-95 duration-700">
                <div className="relative mb-5">
@@ -392,9 +501,18 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 
             {step === 'DELIVERY' && (
                <button 
-                  onClick={() => setStep('PAYMENT')} 
+                  onClick={() => setStep('PROMO')} 
                   disabled={!canProceedFromDelivery}
                   className="w-full h-15 rounded-2xl bg-primary text-white font-bold text-base flex items-center justify-center gap-4 transition-all shadow-xl shadow-primary/25 disabled:opacity-40 disabled:grayscale disabled:scale-100"
+               >
+                  NEXT: PROMOTIONS <ArrowRight className="h-5 w-5" />
+               </button>
+            )}
+
+            {step === 'PROMO' && (
+               <button 
+                  onClick={() => setStep('PAYMENT')} 
+                  className="w-full h-15 rounded-2xl bg-primary text-white font-bold text-base flex items-center justify-center gap-4 transition-all shadow-xl shadow-primary/25"
                >
                   NEXT: PAYMENT METHOD <ArrowRight className="h-5 w-5" />
                </button>
@@ -415,7 +533,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                   disabled={isProcessing}
                   className="w-full h-15 rounded-2xl bg-success hover:bg-success/90 text-white font-bold text-base flex items-center justify-center gap-4 transition-all shadow-xl shadow-success/25 disabled:opacity-50"
                >
-                  {isProcessing ? <Loader2 className="h-6 w-6 animate-spin" /> : <>FINALIZE & ORDER · {useSettingsStore.getState().currencySymbol}{cart.getTotal().toFixed(2)} <CheckCircle2 className="h-5 w-5" /></>}
+                  {isProcessing ? <Loader2 className="h-6 w-6 animate-spin" /> : <>FINALIZE & ORDER · {useSettingsStore.getState().currencySymbol}{finalTotal.toFixed(2)} <CheckCircle2 className="h-5 w-5" /></>}
                </button>
             )}
           </div>
@@ -439,13 +557,6 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
         )}
       </div>
 
-      <style jsx global>{`
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 20px; }
-        .h-15 { height: 3.75rem; }
-        .shadow-special-success { box-shadow: 0 0 50px -10px rgba(34, 197, 94, 0.4); }
-      `}</style>
     </>
   );
 };
