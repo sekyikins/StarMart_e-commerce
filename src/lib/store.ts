@@ -21,6 +21,7 @@ interface CartState {
   removeItem: (productId: string, userId?: string) => void;
   updateQuantity: (productId: string, quantity: number, userId?: string) => void;
   clearCart: (userId?: string) => void;
+  refreshPrices: (products: Product[]) => void;
   getTotal: () => number;
   getItemCount: () => number;
 }
@@ -39,7 +40,9 @@ export const useCartStore = create<CartState>((set, get) => ({
         newItems = state.items.map(i => i.productId === product.id ? {
           ...i,
           quantity: newQty,
-          subtotal: newQty * i.price
+          subtotal: newQty * product.price,
+          price: product.price, // Always update to latest price
+          maxQuantity: product.quantity
         } : i);
       } else {
         newItems = [...state.items, {
@@ -74,6 +77,26 @@ export const useCartStore = create<CartState>((set, get) => ({
       });
       if (userId) syncCartToDB(userId, newItems);
       return { items: newItems };
+    });
+  },
+  refreshPrices: (products) => {
+    set((state) => {
+      let changed = false;
+      const nextItems = state.items.map(item => {
+        const p = products.find(prod => prod.id === item.productId);
+        if (p && (p.price !== item.price || p.quantity !== item.maxQuantity)) {
+          changed = true;
+          return { 
+            ...item, 
+            price: p.price, 
+            maxQuantity: p.quantity, 
+            quantity: Math.min(item.quantity, p.quantity),
+            subtotal: Math.min(item.quantity, p.quantity) * p.price
+          };
+        }
+        return item;
+      });
+      return changed ? { items: nextItems } : state;
     });
   },
   clearCart: (userId) => {

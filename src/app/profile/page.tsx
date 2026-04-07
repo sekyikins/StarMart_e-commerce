@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, startTransition } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '@/lib/auth';
 import { Navbar } from '@/components/layout/Navbar';
 import { CartDrawer } from '@/components/cart/CartDrawer';
@@ -12,9 +12,10 @@ import {
   HelpCircle, ShieldCheck, LogOut 
 } from 'lucide-react';
 import { getOrdersByUser } from '@/lib/db';
-import { useCartStore, useSettingsStore } from '@/lib/store';
+import { useSettingsStore } from '@/lib/store';
 import { Order } from '@/lib/types';
 import Link from 'next/link';
+import { useRealtimeTable } from '@/hooks/useRealtimeTable';
 
 function LoyaltyModal({ onClose }: { onClose: () => void }) {
   const { storeName } = useSettingsStore();
@@ -69,21 +70,18 @@ function ProfileContent() {
   const { user, logout, isLoading: authLoading } = useAuth();
   const { storeName, currencySymbol } = useSettingsStore();
   const router = useRouter();
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [loadingOrders, setLoadingOrders] = useState(false);
+  
   const [showLoyaltyModal, setShowLoyaltyModal] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
-  useEffect(() => {
-    if (user) {
-      startTransition(() => {
-        setLoadingOrders(true);
-      });
-      getOrdersByUser(user.id)
-        .then(setOrders)
-        .finally(() => setLoadingOrders(false));
-    }
-  }, [user]);
+  const { data: orders, isLoading: loadingOrders } = useRealtimeTable<Order>({
+    table: 'online_orders',
+    initialData: [],
+    fetcher: () => user ? getOrdersByUser(user.id) : Promise.resolve([]),
+    filter: user ? { column: 'e_customer_id', value: user.id } : undefined,
+    refetchOnChange: true,
+    disabled: !user?.id
+  });
 
   if (authLoading) {
     return (

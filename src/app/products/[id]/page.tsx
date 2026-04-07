@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Navbar } from '@/components/layout/Navbar';
 import { CartDrawer } from '@/components/cart/CartDrawer';
@@ -38,15 +38,28 @@ const BADGES = [
   { icon: RotateCcw, label: 'Easy Returns', sub: 'See our refund policy' },
 ];
 
+import { useRealtimeTable } from '@/hooks/useRealtimeTable';
+
 function ProductDetailContent() {
   const params = useParams();
   const router = useRouter();
   const id = params?.id as string;
 
-  const [product, setProduct] = useState<Product | null>(null);
-  const [related, setRelated] = useState<Product[]>([]);
-  const [reviews, setReviews] = useState<Review[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: allProducts, isLoading: loadingProducts } = useRealtimeTable<Product>({
+    table: 'products',
+    initialData: [],
+    fetcher: getProducts,
+    refetchOnChange: true
+  });
+
+  const { data: reviews, isLoading: loadingReviews, refetch: refetchReviews } = useRealtimeTable<Review>({
+    table: 'product_reviews',
+    initialData: [],
+    fetcher: () => getReviews(id),
+    filter: { column: 'product_id', value: id },
+    refetchOnChange: true
+  });
+
   const [qty, setQty] = useState(1);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [added, setAdded] = useState(false);
@@ -58,23 +71,17 @@ function ProductDetailContent() {
   const { addToast, toasts } = useToastStore();
   const { user } = useAuth();
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [all, revs] = await Promise.all([getProducts(), getReviews(id)]);
-      const found = all.find(p => p.id === id);
-      if (!found) { router.push('/products'); return; }
-      setProduct(found);
-      setReviews(revs);
-      setRelated(all.filter(p => (p.categoryId === found.categoryId || p.category === found.category) && p.id !== id).slice(0, 4));
-    } catch {
-      router.push('/products');
-    } finally {
-      setLoading(false);
-    }
-  }, [id, router]);
+  const product = useMemo(() => allProducts.find(p => p.id === id) || null, [allProducts, id]);
+  
+  const related = useMemo(() => {
+    if (!product) return [];
+    return allProducts.filter(p => 
+      (p.categoryId === product.categoryId || p.category === product.category) && 
+      p.id !== id
+    ).slice(0, 4);
+  }, [allProducts, product, id]);
 
-  useEffect(() => { load(); }, [load]);
+  const loading = loadingProducts || loadingReviews;
 
   const handleAddToCart = () => {
     if (!product || product.quantity <= 0) return;
@@ -102,8 +109,7 @@ function ProductDetailContent() {
       await addReview(product.id, user.id, reviewForm.rating, reviewForm.comment);
       addToast('Review submitted!', 'success');
       setReviewForm({ rating: 5, comment: '' });
-      const revs = await getReviews(product.id);
-      setReviews(revs);
+      refetchReviews();
     } catch {
       addToast('Failed to post review', 'error');
     } finally {
@@ -148,11 +154,11 @@ function ProductDetailContent() {
           <span className="text-foreground font-black truncate max-w-[200px]">{product.name}</span>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-10 lg:gap-16">
+        <div className="grid md:grid-cols-2 gap-10 lg:gap-8">
           {/* ── Left: Product Visual ─────────────────────────────── */}
           <div className="space-y-4">
             {/* Hero image placeholder */}
-            <div className={`relative aspect-square rounded-[2.5rem] bg-linear-to-br ${gradient} flex items-center justify-center overflow-hidden shadow-2xl`}>
+            <div className={`relative aspect-square rounded-4xl bg-linear-to-br ${gradient} flex items-center justify-center overflow-hidden shadow-2xl`}>
               {/* Decorative circles */}
               <div className="absolute -top-12 -right-12 h-48 w-48 rounded-full bg-white/10 blur-2xl" />
               <div className="absolute -bottom-8 -left-8 h-32 w-32 rounded-full bg-white/10 blur-xl" />
@@ -209,9 +215,16 @@ function ProductDetailContent() {
               )}
             </div>
 
-            <h1 className="text-3xl sm:text-4xl font-black tracking-tight leading-tight text-foreground mb-4">
+            <h1 className="text-3xl sm:text-4xl font-black tracking-tight leading-tight text-foreground mb-1">
               {product.name}
             </h1>
+
+            {/* Product description */}
+            {product.description && (
+              <p className="text-md mb-4 text-foreground/80 leading-relaxed font-medium bg-muted/20 p-2 rounded-xl border border-border/40 italic">
+                {product.description}
+              </p>
+            )}
 
             {/* Rating Display */}
             <div className="flex items-center gap-2 mb-5">
@@ -232,13 +245,14 @@ function ProductDetailContent() {
               </span>
             </div>
 
-            {/* Price */}
-            <div className="flex items-baseline gap-3 mb-6">
+            <div className="flex items-center justify-between mb-6">
+              {/* Price */}
+            <div className="flex items-baseline gap-3">
               <span className="text-5xl font-black text-foreground">{useSettingsStore.getState().currencySymbol}{product.price.toFixed(2)}</span>
             </div>
 
             {/* Stock info */}
-            <div className={`flex items-center gap-2 text-sm font-bold mb-6 px-4 py-3 rounded-2xl ${
+            <div className={`flex items-center gap-2 text-sm font-bold p-3 rounded-xl w-fit ${
               outOfStock ? 'bg-destructive/10 text-destructive border border-destructive/20' :
               lowStock   ? 'bg-warning/10 text-warning border border-warning/20' :
                            'bg-success/10 text-success border border-success/20'
@@ -248,6 +262,7 @@ function ProductDetailContent() {
                 : lowStock ? `Hurry! Only ${product.quantity} remaining`
                 : `${product.quantity} units available`}
             </div>
+            </div>
 
             {/* Qty selector */}
             {!outOfStock && (
@@ -256,14 +271,14 @@ function ProductDetailContent() {
                 <div className="flex items-center gap-2 bg-muted/30 rounded-2xl p-1.5">
                   <button
                     onClick={() => setQty(q => Math.max(1, q - 1))}
-                    className="h-9 w-9 rounded-xl bg-card border border-border flex items-center justify-center hover:border-primary/50 transition-all active:scale-95 shadow-sm"
+                    className="h-9 w-9 rounded-xl bg-card border border-border flex items-center justify-center hover:cursor-pointer hover:border-primary/50 transition-all active:scale-95 shadow-sm"
                   >
                     <Minus className="h-4 w-4" />
                   </button>
                   <span className="w-10 text-center font-black text-lg">{qty}</span>
                   <button
                     onClick={() => setQty(q => Math.min(maxQty, q + 1))}
-                    className="h-9 w-9 rounded-xl bg-card border border-border flex items-center justify-center hover:border-primary/50 transition-all active:scale-95 shadow-sm"
+                    className="h-9 w-9 rounded-xl bg-card border border-border flex items-center justify-center hover:cursor-pointer hover:border-primary/50 transition-all active:scale-95 shadow-sm"
                   >
                     <Plus className="h-4 w-4" />
                   </button>
@@ -280,10 +295,10 @@ function ProductDetailContent() {
               disabled={outOfStock}
               className={`w-full h-14 rounded-2xl font-black text-base flex items-center justify-center gap-3 transition-all shadow-lg active:scale-[0.98] ${
                 added
-                  ? 'bg-success text-white shadow-success/30'
+                  ? 'bg-success text-white shadow-success/30 cursor-wait'
                   : outOfStock
                   ? 'bg-muted text-muted-foreground cursor-not-allowed opacity-60'
-                  : 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-primary/30 hover:shadow-xl hover:shadow-primary/40'
+                  : 'bg-primary text-primary-foreground cursor-pointer hover:bg-primary/90 shadow-primary/30 hover:shadow-xl hover:shadow-primary/40'
               }`}
             >
               {added ? (
@@ -295,7 +310,7 @@ function ProductDetailContent() {
 
             <button
               onClick={() => router.back()}
-              className="mt-4 flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground font-bold transition-colors mx-auto"
+              className="mt-4 flex items-center gap-2 text-sm text-muted-foreground cursor-pointer hover:text-foreground font-bold transition-colors mx-auto"
             >
               <ArrowLeft className="h-4 w-4" /> Back to products
             </button>
@@ -426,7 +441,7 @@ function ProductDetailContent() {
           <section className="mt-16">
             <h2 className="text-2xl font-black mb-6 tracking-tight">More in <span className="text-primary">{product.category}</span></h2>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              {related.map(p => {
+              {related.map((p: Product) => {
                 const oos = p.quantity <= 0;
                 const g = getColor(p.id);
                 return (

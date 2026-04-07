@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useCartStore, useSettingsStore, useToastStore } from '@/lib/store';
 import { useAuth } from '@/lib/auth';
-import { placeOrder, getDeliveryPoints, getPromotionByCode } from '@/lib/db';
+import { placeOrder, getDeliveryPoints, getPromotionByCode, getProducts } from '@/lib/db';
 import { Promotion } from '@/lib/types';
 import { X, Minus, Plus, ShoppingBag, MapPin, CreditCard, Smartphone, CheckCircle2, Package, Copy, ChevronLeft, ArrowRight, Loader2, Search, AlertCircle, Tag, type LucideIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -15,11 +15,28 @@ interface CartDrawerProps {
 
 type CheckoutStep = 'CART' | 'DELIVERY' | 'PROMO' | 'PAYMENT' | 'SUMMARY' | 'SUCCESS';
 
+import { useRealtimeTable } from '@/hooks/useRealtimeTable';
+import { Product } from '@/lib/types';
+
 export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
   const cart = useCartStore();
   const { user } = useAuth();
   const { currencySymbol, storeName } = useSettingsStore();
   const { addToast } = useToastStore();
+  // Real-time synchronization for cart items
+  const { data: allProducts } = useRealtimeTable<Product>({
+    table: 'products',
+    initialData: [],
+    fetcher: getProducts,
+    refetchOnChange: true
+  });
+
+  React.useEffect(() => {
+    if (allProducts.length > 0) {
+      cart.refreshPrices(allProducts);
+    }
+  }, [allProducts, cart]);
+
   const router = useRouter();
   const [step, setStep] = useState<CheckoutStep>('CART');
   const [deliveryPoints, setDeliveryPoints] = React.useState<{ id: string; name: string; address: string }[]>([]);

@@ -61,6 +61,7 @@ export function useRealtimeTable<T extends { id: string }>({
   const channelRef = useRef<RealtimeChannel | null>(null);
   // Stable ref so fetcher identity changes don't retrigger the subscription
   const fetcherRef = useRef(fetcher);
+  const instanceIdRef = useRef(Math.random().toString(36).slice(2, 9));
   fetcherRef.current = fetcher;
 
   const refetch = useCallback(async () => {
@@ -87,10 +88,10 @@ export function useRealtimeTable<T extends { id: string }>({
     const filterCol = filter?.column;
     const filterVal = filter?.value;
 
-    // Unique channel per subscription
+    // Stable channel name suffix to prevent collisions on the same page
     const channelName = filterCol && filterVal
-      ? `rt:${table}:${filterCol}:${filterVal}`
-      : `rt:${table}`;
+      ? `rt:${table}:${filterCol}:${filterVal}_${instanceIdRef.current}`
+      : `rt:${table}_${instanceIdRef.current}`;
 
     const channel = supabase.channel(channelName);
 
