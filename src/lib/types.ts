@@ -57,7 +57,7 @@ export interface Order {
   items: OrderItem[];
   totalAmount: number;
   status: 'PENDING' | 'CONFIRMED' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';
-  paymentMethod: 'ONLINE_PAYMENT' | 'PAY_ON_DELIVERY' | 'MOBILE_MONEY' | 'CASH_ON_DELIVERY' | 'CARD' | 'CASH';
+  paymentMethod: 'PAYSTACK' | 'PAY_ON_DELIVERY';
   paymentReference?: string;
   promoName?: string;
   createdAt: string;

@@ -4,9 +4,12 @@ import { useCartStore, useSettingsStore, useToastStore } from '@/lib/store';
 import { useAuth } from '@/lib/auth';
 import { placeOrder, getDeliveryPoints, getPromotionByCode, getProducts } from '@/lib/db';
 import { Promotion } from '@/lib/types';
-import { X, Minus, Plus, ShoppingBag, MapPin, CreditCard, Smartphone, CheckCircle2, Package, Copy, ChevronLeft, ArrowRight, Loader2, Search, AlertCircle, Tag, type LucideIcon } from 'lucide-react';
+import { X, Minus, Plus, ShoppingBag, MapPin, CreditCard, CheckCircle2, Package, Copy, ChevronLeft, ArrowRight, Loader2, Search, AlertCircle, Tag, type LucideIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import dynamic from 'next/dynamic';
+
+const PaystackHandler = dynamic(() => import('./PaystackHandler'), { ssr: false });
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -21,8 +24,10 @@ import { Product } from '@/lib/types';
 export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
   const cart = useCartStore();
   const { user } = useAuth();
-  const { currencySymbol, storeName } = useSettingsStore();
+  const { currencySymbol, currency } = useSettingsStore();
   const { addToast } = useToastStore();
+  
+  const paystackInitializeRef = React.useRef<((options: Record<string, unknown>) => void) | null>(null);
   // Real-time synchronization for cart items
   const { data: allProducts } = useRealtimeTable<Product>({
     table: 'products',
@@ -43,10 +48,12 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
   const [selectedDeliveryPoint, setSelectedDeliveryPoint] = useState('');
   const [customAddress, setCustomAddress] = useState('');
   const [useCustomAddress, setUseCustomAddress] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<'CARD' | 'MOBILE_MONEY' | 'PAY_ON_DELIVERY'>('CARD');
+  const [paymentMethod, setPaymentMethod] = useState<'PAYSTACK' | 'PAY_ON_DELIVERY'>('PAYSTACK');
   const [isProcessing, setIsProcessing] = useState(false);
   const [orderId, setOrderId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [paystackReference, setPaystackReference] = useState<string | null>(null);
+  const [isPaymentCompleted, setIsPaymentCompleted] = useState(false);
 
   const [promoCodeInput, setPromoCodeInput] = useState('');
   const [appliedPromo, setAppliedPromo] = useState<Promotion | null>(null);
@@ -63,6 +70,38 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
     }
   }
   const finalTotal = Math.max(0, subtotal - promoDiscount);
+  
+  const handlePaystackPayment = () => {
+    if (!user?.email) {
+      addToast('Please ensure your email is set in your profile before paying with Paystack.', 'error');
+      return;
+    }
+    
+    if (finalTotal <= 0) {
+      addToast('Amount must be greater than zero.', 'error');
+      return;
+    }
+
+    if (!paystackInitializeRef.current) {
+      addToast('Payment system is initializing. Please try again in a moment.', 'info');
+      return;
+    }
+
+    setIsProcessing(true);
+    paystackInitializeRef.current({
+      onSuccess: (response: { reference: string }) => {
+        setPaystackReference(response.reference);
+        setIsPaymentCompleted(true);
+        setIsProcessing(false);
+        setStep('SUMMARY');
+        addToast('Payment secured! Proceeding to summary.', 'success');
+      },
+      onClose: () => {
+        setIsProcessing(false);
+        addToast('Payment cancelled.', 'info');
+      },
+    });
+  };
 
   React.useEffect(() => {
     if (isOpen && step === 'DELIVERY') {
@@ -128,6 +167,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
         deliveryAddress: useCustomAddress ? customAddress : undefined,
         totalAmount: finalTotal,
         paymentMethod,
+        paymentReference: paystackReference || undefined,
         promoName: appliedPromo?.name,
         promoCode: appliedPromo?.code,
         items: cart.items.map(i => ({ productId: i.productId, productName: i.productName, price: i.price, quantity: i.quantity, subtotal: i.subtotal })),
@@ -135,6 +175,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
       setOrderId(order.id);
       cart.clearCart(user.id);
       setAppliedPromo(null);
+      setPaystackReference(null);
+      setIsPaymentCompleted(false);
       addToast('Order placed successfully!', 'success');
       setStep('SUCCESS');
     } catch (err) {
@@ -199,8 +241,15 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
   return (
     <>
       <div className={`fixed inset-0 z-50 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} onClick={onClose} />
-      <div className={`fixed inset-y-0 right-0 z-50 w-full sm:w-[480px] bg-background flex flex-col shadow-2xl transition-transform duration-500 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+      <div className={`fixed inset-y-0 right-0 z-50 w-full sm:w-120 bg-background flex flex-col shadow-2xl transition-transform duration-500 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
         {renderHeader()}
+        <PaystackHandler
+          email={user?.email || ''}
+          amount={Math.round(finalTotal * 100)}
+          publicKey={process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || ''}
+          currency={currency}
+          initializeRef={paystackInitializeRef}
+        />
 
         {/* STEPPER PROGRESS (only during checkout) */}
         {step !== 'CART' && step !== 'SUCCESS' && (
@@ -331,7 +380,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                        {!appliedPromo ? (
                          <div className="flex gap-2">
                            <input type="text" value={promoCodeInput} onChange={e => {setPromoCodeInput(e.target.value.toUpperCase()); setPromoError('');}} placeholder="Enter promo code..." className="flex-1 rounded-xl border-2 border-border bg-background px-4 text-sm font-bold focus:border-primary outline-none transition-colors uppercase h-12" />
-                           <button onClick={handleApplyPromo} disabled={!promoCodeInput || isApplyingPromo} className="px-5 rounded-xl bg-primary text-white font-bold text-sm hover:opacity-90 disabled:opacity-50 transition-all flex items-center justify-center min-w-[100px]">
+                           <button onClick={handleApplyPromo} disabled={!promoCodeInput || isApplyingPromo} className="px-5 rounded-xl bg-primary text-white font-bold text-sm hover:opacity-90 disabled:opacity-50 transition-all flex items-center justify-center min-w-25">
                              {isApplyingPromo ? <Loader2 className="h-4 w-4 animate-spin"/> : 'APPLY'}
                            </button>
                          </div>
@@ -358,46 +407,34 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
             <div className="p-6 space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
                <div className="space-y-4">
                   <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-[0.2em] px-2 mb-4">Choose Method</p>
-                  {(['CARD', 'MOBILE_MONEY', 'PAY_ON_DELIVERY'] as const).map(m => (
-                    <button key={m} onClick={() => setPaymentMethod(m)} className={`flex items-center gap-5 p-3 rounded-2xl border-2 transition-all relative overflow-hidden group ${paymentMethod === m ? 'border-primary bg-primary/5 ring-1 ring-primary/30 shadow-xl' : 'border-border bg-card hover:border-primary/40 shadow-sm'}`}>
+                  {(['PAYSTACK', 'PAY_ON_DELIVERY'] as const).map(m => (
+                    <button key={m} onClick={() => setPaymentMethod(m as any)} className={`flex items-center gap-5 p-3 rounded-2xl border-2 transition-all relative overflow-hidden group ${paymentMethod === m ? 'border-primary bg-primary/5 ring-1 ring-primary/30 shadow-xl' : 'border-border bg-card hover:border-primary/40 shadow-sm'}`}>
                        <div className={`p-4 rounded-2xl transition-all ${paymentMethod === m ? 'bg-primary text-white scale-110' : 'bg-muted text-muted-foreground group-hover:text-primary'}`}>
-                          {m === 'CARD' && <CreditCard className="h-6 w-6"/>}
-                          {m === 'MOBILE_MONEY' && <Smartphone className="h-6 w-6"/>}
+                          {m === 'PAYSTACK' && <CreditCard className="h-6 w-6"/>}
                           {m === 'PAY_ON_DELIVERY' && <Package className="h-6 w-6"/>}
                        </div>
                        <div className="flex-1">
-                          <p className="font-bold text-base text-foreground uppercase tracking-tight">{m.replace(/_/g, ' ')}</p>
-                          <p className="text-[10px] text-muted-foreground font-bold uppercase mt-1 tracking-widest">{m === 'PAY_ON_DELIVERY' ? 'Safe and Secure' : 'Instant Confirmation'}</p>
+                          <p className="font-bold text-base text-foreground uppercase tracking-tight">{m === 'PAYSTACK' ? 'Paystack' : m.replace(/_/g, ' ')}</p>
+                          <p className="text-[10px] text-muted-foreground font-bold uppercase mt-1 tracking-widest">{m === 'PAYSTACK' ? 'Card, Mobile Money, Apple Pay' : 'Safe and Secure'}</p>
                        </div>
                        {paymentMethod === m && (
-                         <div className="h-6 w-6 rounded-full bg-primary flex items-center justify-center animate-in zoom-in duration-300 shadow-lg shadow-primary/40">
-                            <ArrowRight className="h-3 w-3 text-white" />
-                         </div>
+                          <div className="h-6 w-6 rounded-full bg-primary flex items-center justify-center animate-in zoom-in duration-300 shadow-lg shadow-primary/40">
+                             <ArrowRight className="h-3 w-3 text-white" />
+                          </div>
                        )}
                     </button>
                   ))}
                </div>
-               
-               {/* Dummy Card Info (Visible if CARD is selected) */}
-               {paymentMethod === 'CARD' && (
-                 <div className="bg-linear-to-br from-indigo-600 to-indigo-800 rounded-3xl p-6 text-white shadow-2xl relative overflow-hidden animate-in slide-in-from-bottom-4 duration-500">
-                    <div className="absolute right-[-20px] top-[-20px] h-32 w-32 rounded-full bg-white/10 blur-3xl" />
-                    <div className="flex justify-between items-start mb-10">
+               {paymentMethod === 'PAYSTACK' && (
+                 <div className="bg-linear-to-br from-primary/80 to-primary rounded-3xl p-6 text-white shadow-2xl relative overflow-hidden animate-in slide-in-from-bottom-4 duration-500">
+                    <div className="absolute -right-5 -top-5 h-32 w-32 rounded-full bg-white/10 blur-3xl" />
+                    <div className="flex justify-between items-start mb-6">
                        <CreditCard className="h-8 w-8 text-white/50" />
-                       <span className="font-bold text-sm tracking-widest italic opacity-60">{storeName.toUpperCase()} CARD</span>
+                       <span className="font-bold text-sm tracking-widest italic opacity-60">SECURE PAYMENT</span>
                     </div>
                     <div className="space-y-4">
-                       <p className="text-xl font-mono tracking-widest leading-none">•••• •••• •••• 8842</p>
-                       <div className="flex justify-between items-end">
-                          <div>
-                             <p className="text-[8px] font-bold uppercase tracking-widest opacity-50 mb-1">Card Holder</p>
-                             <p className="text-sm font-bold tracking-wide uppercase">{user?.name}</p>
-                          </div>
-                          <div className="text-right">
-                             <p className="text-[8px] font-bold uppercase tracking-widest opacity-50 mb-1">Expires</p>
-                             <p className="text-sm font-bold tracking-wide">12/28</p>
-                          </div>
-                       </div>
+                       <p className="text-lg font-bold leading-tight">Pay via Paystack</p>
+                       <p className="text-xs opacity-80 leading-relaxed">Pay with your Credit/Debit Card, Mobile Money, or Apple Pay through our secure payment gateway.</p>
                     </div>
                  </div>
                )}
@@ -437,7 +474,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                         <CreditCard className="h-5 w-5 text-muted-foreground shrink-0" />
                         <div>
                           <p className="font-bold text-base text-foreground leading-tight uppercase tracking-tight">{paymentMethod.replace(/_/g, ' ')}</p>
-                          <p className="text-xs text-muted-foreground font-medium mt-0.5 tracking-tight">Standard Processing Applied</p>
+                          <p className="text-xs text-muted-foreground font-medium mt-0.5 tracking-tight">{isPaymentCompleted ? 'Payment Completed Securely' : 'Standard Processing Applied'}</p>
                         </div>
                      </div>
                   </div>
@@ -448,13 +485,13 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                      <div className="bg-muted/20 rounded-3xl p-2 border-2 border-dashed border-border">
                         {cart.items.map(item => (
                           <div key={item.productId} className="flex justify-between items-center p-3 hover:bg-card/50 rounded-2xl transition-colors">
-                            <span className="font-bold text-foreground truncate max-w-[240px] text-sm">{item.productName} <span className="text-muted-foreground text-xs ml-1">× {item.quantity}</span></span>
+                            <span className="font-bold text-foreground truncate max-w-60 text-sm">{item.productName} <span className="text-muted-foreground text-xs ml-1">× {item.quantity}</span></span>
                             <span className="font-bold text-foreground text-sm">{useSettingsStore.getState().currencySymbol}{item.subtotal.toFixed(2)}</span>
                           </div>
                         ))}
                         {appliedPromo && (
                            <div className="flex justify-between items-center p-3 rounded-2xl bg-success/10 mt-2 border border-success/20">
-                             <span className="font-bold text-success text-sm truncate max-w-[240px]">Deduction: {appliedPromo.name}</span>
+                             <span className="font-bold text-success text-sm truncate max-w-60">Deduction: {appliedPromo.name}</span>
                              <span className="font-bold text-success text-sm">-{useSettingsStore.getState().currencySymbol}{promoDiscount.toFixed(2)}</span>
                            </div>
                         )}
@@ -537,10 +574,10 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 
             {step === 'PAYMENT' && (
                <button 
-                  onClick={() => setStep('SUMMARY')} 
+                  onClick={() => paymentMethod === 'PAYSTACK' ? handlePaystackPayment() : setStep('SUMMARY')} 
                   className="w-full h-15 rounded-2xl bg-primary text-white font-bold text-base flex items-center justify-center gap-4 transition-all shadow-xl shadow-primary/25"
                >
-                  REVIEW FINAL ORDER <ArrowRight className="h-5 w-5" />
+                  {paymentMethod === 'PAYSTACK' ? 'MAKE PAYMENT' : 'REVIEW FINAL ORDER'} <ArrowRight className="h-5 w-5" />
                </button>
             )}
 

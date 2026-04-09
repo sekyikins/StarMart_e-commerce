@@ -153,6 +153,7 @@ export async function placeOrder(orderData: {
   items: { productId: string; productName: string; price: number; quantity: number; subtotal: number }[];
   promoName?: string;
   promoCode?: string;
+  paymentReference?: string;
 }) {
   const { data: orderRow, error: orderErr } = await supabase
     .from('online_orders')
@@ -162,6 +163,7 @@ export async function placeOrder(orderData: {
       delivery_address: orderData.deliveryAddress ?? null,
       total_amount: orderData.totalAmount,
       payment_method: orderData.paymentMethod,
+      payment_reference: orderData.paymentReference ?? null,
       promo_name: orderData.promoName ?? null,
       status: 'PENDING',
     }).select().single();
