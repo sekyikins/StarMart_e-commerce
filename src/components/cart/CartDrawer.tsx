@@ -27,7 +27,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
   const { currencySymbol, currency } = useSettingsStore();
   const { addToast } = useToastStore();
   
-  const paystackInitializeRef = React.useRef<((options: Record<string, unknown>) => void) | null>(null);
+  const paystackInitializeRef = React.useRef<((options: { onSuccess?: (res: { reference: string }) => void; onClose?: () => void }) => void) | null>(null);
   // Real-time synchronization for cart items
   const { data: allProducts } = useRealtimeTable<Product>({
     table: 'products',
@@ -408,7 +408,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                <div className="space-y-4">
                   <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-[0.2em] px-2 mb-4">Choose Method</p>
                   {(['PAYSTACK', 'PAY_ON_DELIVERY'] as const).map(m => (
-                    <button key={m} onClick={() => setPaymentMethod(m as any)} className={`flex items-center gap-5 p-3 rounded-2xl border-2 transition-all relative overflow-hidden group ${paymentMethod === m ? 'border-primary bg-primary/5 ring-1 ring-primary/30 shadow-xl' : 'border-border bg-card hover:border-primary/40 shadow-sm'}`}>
+                    <button key={m} onClick={() => setPaymentMethod(m)} className={`flex items-center gap-5 p-3 rounded-2xl border-2 transition-all relative overflow-hidden group ${paymentMethod === m ? 'border-primary bg-primary/5 ring-1 ring-primary/30 shadow-xl' : 'border-border bg-card hover:border-primary/40 shadow-sm'}`}>
                        <div className={`p-4 rounded-2xl transition-all ${paymentMethod === m ? 'bg-primary text-white scale-110' : 'bg-muted text-muted-foreground group-hover:text-primary'}`}>
                           {m === 'PAYSTACK' && <CreditCard className="h-6 w-6"/>}
                           {m === 'PAY_ON_DELIVERY' && <Package className="h-6 w-6"/>}
