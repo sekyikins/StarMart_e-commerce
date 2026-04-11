@@ -9,7 +9,7 @@ import {
   User, Mail, Phone, Star, ShoppingBag, 
   Settings, MapPin, 
   ChevronRight, Clock, FileText,
-  HelpCircle, ShieldCheck, LogOut 
+  HelpCircle, ShieldCheck, LogOut, RotateCcw
 } from 'lucide-react';
 import { getOrdersByUser } from '@/lib/db';
 import { useSettingsStore } from '@/lib/store';
@@ -22,9 +22,9 @@ function LoyaltyModal({ onClose }: { onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-card border border-border w-full max-w-lg rounded-[2.5rem] p-8 shadow-2xl animate-in zoom-in-95 duration-200">
+      <div className="relative bg-card border border-border w-full max-w-lg rounded-2xl p-8 shadow-2xl animate-in zoom-in-95 duration-200">
         <div className="flex justify-center mb-6">
-          <div className="h-20 w-20 rounded-3xl bg-yellow-400 flex items-center justify-center shadow-xl shadow-yellow-400/20">
+          <div className="h-20 w-20 rounded-2xl bg-yellow-400 flex items-center justify-center shadow-xl shadow-yellow-400/20">
             <Star className="h-10 w-10 text-indigo-900 fill-indigo-900" />
           </div>
         </div>
@@ -78,7 +78,7 @@ function ProfileContent() {
     table: 'online_orders',
     initialData: [],
     fetcher: () => user ? getOrdersByUser(user.id) : Promise.resolve([]),
-    filter: user ? { column: 'e_customer_id', value: user.id } : undefined,
+    filter: user ? { column: 'customer_id', value: user.id } : undefined,
     refetchOnChange: true,
     disabled: !user?.id
   });
@@ -123,7 +123,7 @@ function ProfileContent() {
         
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="flex flex-wrap items-end gap-6 text-white">
-            <div className="h-32 w-32 rounded-3xl bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center text-5xl font-bold shadow-2xl transition-transform hover:scale-105">
+            <div className="h-32 w-32 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center text-5xl font-bold shadow-2xl transition-transform hover:scale-105">
               {initial}
             </div>
             <div className="flex-1 mb-2">
@@ -155,8 +155,8 @@ function ProfileContent() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
           
           {/* Sidebar Tabs */}
           <div className="lg:col-span-3">
@@ -165,6 +165,7 @@ function ProfileContent() {
               {[
                 { icon: User, label: 'Dashboard', active: true },
                 { icon: ShoppingBag, label: 'My Orders', href: '/orders' },
+                { icon: RotateCcw, label: 'My Returns', href: '/returns' },
                 { icon: Settings, label: 'Account Settings', href: '/settings' },
                 { icon: ShieldCheck, label: 'Privacy Policy', href: '/privacy' },
                 { icon: FileText, label: 'Terms & Conditions', href: '/terms' },
@@ -213,6 +214,7 @@ function ProfileContent() {
                   {[
                     { icon: User, label: 'Dashboard', active: true },
                     { icon: ShoppingBag, label: 'Orders', href: '/orders' },
+                    { icon: RotateCcw, label: 'Returns', href: '/returns' },
                     { icon: Settings, label: 'Settings', href: '/settings' },
                     { icon: ShieldCheck, label: 'Privacy', href: '/privacy' },
                     { icon: FileText, label: 'Terms', href: '/terms' },
@@ -252,21 +254,21 @@ function ProfileContent() {
             
             {/* Quick Stats Grid */}
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              <div className="bg-card p-6 rounded-4xl border-2 border-border shadow-2xl shadow-blue-500/20 hover:shadow-blue-500/30 transition-all group">
+              <div className="bg-card p-5 rounded-2xl border-2 border-border shadow-2xl shadow-blue-500/10 hover:shadow-blue-500/20 transition-all group">
                 <div className="h-10 w-10 rounded-xl bg-blue-100 dark:bg-blue-900/40 text-blue-600 flex items-center justify-center m-1 mb-4 ring-4 ring-blue-100 dark:ring-blue-900/40 group-hover:scale-110 transition-transform">
                   <ShoppingBag className="h-5 w-5" />
                 </div>
                 <div className="text-2xl font-bold">{orders.length}</div>
                 <div className="text-muted-foreground text-xs font-bold uppercase tracking-wider">Total Orders</div>
               </div>
-              <div className="bg-card p-6 rounded-4xl border-2 border-border shadow-2xl shadow-orange-500/20 hover:shadow-orange-500/30 transition-all group">
+              <div className="bg-card p-5 rounded-2xl border-2 border-border shadow-2xl shadow-orange-500/10 hover:shadow-orange-500/20 transition-all group">
                 <div className="h-10 w-10 rounded-xl bg-orange-100 dark:bg-orange-900/40 text-orange-600 flex items-center justify-center m-1 mb-4 ring-4 ring-orange-100 dark:ring-orange-900/40 group-hover:scale-110 transition-transform">
                   <Clock className="h-5 w-5" />
                 </div>
                 <div className="text-2xl font-bold">{orders.filter(o => o.status === 'PENDING').length}</div>
                 <div className="text-muted-foreground text-xs font-bold uppercase tracking-wider">Active Shipments</div>
               </div>
-              <div className="col-span-2 md:col-span-1 bg-card p-6 rounded-4xl border-2 border-border shadow-2xl shadow-emerald-500/20 hover:shadow-emerald-500/30 transition-all group">
+              <div className="col-span-2 md:col-span-1 bg-card p-5 rounded-2xl border-2 border-border shadow-2xl shadow-emerald-500/10 hover:shadow-emerald-500/20 transition-all group">
                 <div className="h-10 w-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 flex items-center justify-center m-1 mb-4 ring-4 ring-emerald-100 dark:ring-emerald-900/40 group-hover:scale-110 transition-transform">
                   <Star className="h-5 w-5" />
                 </div>
@@ -276,14 +278,14 @@ function ProfileContent() {
             </div>
 
             {/* Personal Details Card */}
-            <div className="bg-card rounded-4xl border-2 border-border overflow-hidden shadow-2xl shadow-indigo-500/15 mb-8">
+            <div className="bg-card rounded-2xl border-2 border-border overflow-hidden shadow-2xl shadow-indigo-500/10 mb-8">
               <div className="px-8 py-6 border-b-2 border-border flex items-center justify-between bg-muted/30 backdrop-blur-sm">
                 <h3 className="font-bold text-xl">Personal Information</h3>
                 <Link href="/settings" className="px-4 h-9 flex items-center rounded-full bg-primary/10 text-primary text-xs font-bold hover:bg-primary/20 transition-all gap-1">
                   Manage <span className='hidden md:block'>Settings</span> <ChevronRight className="h-3 w-3" />
                 </Link>
               </div>
-              <div className="p-8 grid grid-cols-2 gap-4">
+              <div className="p-6 grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1.5 block">Full Name</label>
                   <div className="text-foreground font-bold flex items-center gap-2">
@@ -321,12 +323,12 @@ function ProfileContent() {
               </div>
 
               {loadingOrders ? (
-                <div className="bg-card rounded-4xl p-12 text-center border-2 border-border border-dashed shadow-inner">
+                <div className="bg-card rounded-2xl p-8 text-center border-2 border-border border-dashed shadow-inner">
                   <div className="h-10 w-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
                   <p className="text-muted-foreground text-sm font-bold uppercase tracking-widest">Updating Ledger...</p>
                 </div>
               ) : orders.length > 0 ? (
-                <div className="bg-card rounded-4xl border-2 border-border divide-y-2 divide-border overflow-hidden shadow-2xl shadow-indigo-500/15">
+                <div className="bg-card rounded-2xl border-2 border-border divide-y-2 divide-border overflow-hidden shadow-2xl shadow-indigo-500/10">
                   {orders.slice(0, 3).map((order) => (
                     <div key={order.id} className="p-6 flex items-center justify-between hover:bg-muted/40 transition-all group">
                       <div className="flex items-center gap-5">
@@ -355,7 +357,7 @@ function ProfileContent() {
                   ))}
                 </div>
               ) : (
-                <div className="bg-card rounded-4xl p-16 text-center border-2 border-border border-dashed shadow-inner relative overflow-hidden group">
+                <div className="bg-card rounded-2xl p-12 text-center border-2 border-border border-dashed shadow-inner relative overflow-hidden group">
                   <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-16 -mt-16 blur-3xl transition-transform group-hover:scale-150" />
                   <div className="h-20 w-20 rounded-3xl bg-muted/50 border border-border flex items-center justify-center mx-auto mb-6 shadow-sm group-hover:rotate-12 transition-transform">
                     <ShoppingBag className="h-10 w-10 text-muted-foreground/40" />
@@ -375,7 +377,7 @@ function ProfileContent() {
       {showLogoutConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowLogoutConfirm(false)} />
-          <div className="relative bg-card border-2 border-border/80 w-full max-w-sm rounded-4xl p-8 shadow-2xl animate-in zoom-in-95">
+          <div className="relative bg-card border-2 border-border/80 w-full max-w-sm rounded-2xl p-8 shadow-2xl animate-in zoom-in-95">
             <div className="flex justify-center mb-6">
               <div className="h-16 w-16 rounded-full bg-red-100 text-red-600 flex items-center justify-center">
                 <LogOut className="h-8 w-8" />

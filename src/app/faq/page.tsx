@@ -15,7 +15,7 @@ function FAQContent() {
   const faqs = [
     {
       q: "Can I cancel my order?",
-      a: "Yes! You can cancel any order that is still in &apos;Pending&apos; or &apos;Confirmed&apos; status. Once an order is marked as &apos;In Transit&apos;, it cannot be cancelled as it&apos;s already on its way to you."
+      a: "Yes! You can cancel any order that is still in 'Pending' or 'Confirmed' status. Once an order is marked as 'In Transit', it cannot be cancelled as it's already on its way to you."
     },
     {
       q: "How do I request a refund?",
@@ -27,7 +27,7 @@ function FAQContent() {
     },
     {
       q: "What payment methods do you accept?",
-      a: "We accept Credit/Debit Cards, Mobile Money, and Cash on Delivery. All transactions are secured and encrypted."
+      a: "We accept Paystack (Credit/Debit Cards and Mobile Money) and Payments on Delivery. All transactions are secured and encrypted."
     }
   ];
 

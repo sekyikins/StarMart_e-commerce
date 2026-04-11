@@ -158,7 +158,7 @@ function ProductDetailContent() {
           {/* ── Left: Product Visual ─────────────────────────────── */}
           <div className="space-y-4">
             {/* Hero image placeholder */}
-            <div className={`relative aspect-square rounded-4xl bg-linear-to-br ${gradient} flex items-center justify-center overflow-hidden shadow-2xl`}>
+            <div className={`relative aspect-square rounded-2xl bg-linear-to-br ${gradient} flex items-center justify-center overflow-hidden shadow-2xl`}>
               {/* Decorative circles */}
               <div className="absolute -top-12 -right-12 h-48 w-48 rounded-full bg-white/10 blur-2xl" />
               <div className="absolute -bottom-8 -left-8 h-32 w-32 rounded-full bg-white/10 blur-xl" />
@@ -179,7 +179,7 @@ function ProductDetailContent() {
               )}
 
               {outOfStock && (
-                <div className="absolute inset-0 bg-background/70 backdrop-blur-md flex items-center justify-center rounded-[2.5rem] z-20">
+                <div className="absolute inset-0 bg-background/70 backdrop-blur-md flex items-center justify-center rounded-2xl z-20">
                   <div className="text-center">
                     <AlertTriangle className="h-12 w-12 text-destructive mx-auto mb-2" />
                     <p className="font-black text-xl text-destructive">Out of Stock</p>
@@ -318,7 +318,7 @@ function ProductDetailContent() {
         </div>
 
         {/* ── Reviews Section ───────────────────────────────────── */}
-        <section className="mt-20 pt-20 border-t border-border/40">
+        <section className="mt-12 pt-12 border-t border-border/40">
            <div className="grid lg:grid-cols-3 gap-12">
               <div className="lg:col-span-1 space-y-6">
                  <h2 className="text-3xl font-black flex items-center gap-3">
@@ -330,7 +330,7 @@ function ProductDetailContent() {
                  </p>
                  
                  {/* Summary Stats */}
-                 <div className="bg-card rounded-3xl p-6 border border-border/50 shadow-sm">
+                 <div className="bg-card rounded-2xl p-6 border border-border/50 shadow-sm">
                     <div className="flex items-center gap-4 mb-4">
                        <span className="text-5xl font-black">
                          {reviews.length > 0 
@@ -365,7 +365,7 @@ function ProductDetailContent() {
 
                  {/* Write Review Form */}
                  {user ? (
-                   <form onSubmit={handleSubmitReview} className="bg-primary/5 rounded-3xl p-6 border border-primary/20 space-y-4">
+                   <form onSubmit={handleSubmitReview} className="bg-primary/5 rounded-2xl p-6 border border-primary/20 space-y-4">
                       <h3 className="font-black text-lg">Leave a Review</h3>
                       <div className="flex gap-2">
                         {[1, 2, 3, 4, 5].map(s => (
@@ -395,7 +395,7 @@ function ProductDetailContent() {
                       </button>
                    </form>
                  ) : (
-                   <div className="bg-muted/30 rounded-3xl p-6 border border-border text-center">
+                   <div className="bg-muted/30 rounded-2xl p-6 border border-border text-center">
                       <p className="text-xs font-bold text-muted-foreground mb-4">You must be logged in to leave a review</p>
                       <Link href="/login" className="inline-block px-6 py-2 bg-primary text-primary-foreground rounded-lg text-xs font-black shadow-lg shadow-primary/10">Sign In</Link>
                    </div>
@@ -404,7 +404,7 @@ function ProductDetailContent() {
 
               <div className="lg:col-span-2 space-y-6">
                  {reviews.length === 0 ? (
-                    <div className="h-60 flex flex-col items-center justify-center text-muted-foreground bg-muted/20 rounded-3xl border-2 border-dashed border-border">
+                    <div className="h-60 flex flex-col items-center justify-center text-muted-foreground bg-muted/20 rounded-2xl border-2 border-dashed border-border">
                        <MessageSquare className="h-10 w-10 opacity-20 mb-4" />
                        <p className="font-bold">No reviews yet for this product</p>
                        <p className="text-xs">Be the first to share your experience!</p>
@@ -412,7 +412,7 @@ function ProductDetailContent() {
                  ) : (
                     <div className="space-y-4">
                        {reviews.map(r => (
-                          <div key={r.id} className="bg-card rounded-3xl p-6 border border-border/50 shadow-sm flex gap-4 animate-in fade-in slide-in-from-bottom-5 duration-500">
+                          <div key={r.id} className="bg-card rounded-2xl p-6 border border-border/50 shadow-sm flex gap-4 animate-in fade-in slide-in-from-bottom-5 duration-500">
                              <div className="h-12 w-12 rounded-2xl bg-muted flex items-center justify-center shrink-0">
                                 <User className="h-6 w-6 text-muted-foreground" />
                              </div>

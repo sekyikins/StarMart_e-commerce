@@ -1,6 +1,13 @@
 import { supabase } from './supabase';
-import { Product, CartItem, Order, OrderItem, StorefrontUser, StoreSettings, Review, Promotion } from './types';
+import { Product, Order, OrderItem, StorefrontUser, StoreSettings, Review, Promotion, Return } from './types';
 import bcrypt from 'bcryptjs';
+export const generateReference = (method: string): string => {
+  if (method === 'PAYSTACK') {
+    return Array.from({ length: 13 }, () => Math.floor(Math.random() * 10)).join('');
+  }
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  return Array.from({ length: 13 }, () => chars.charAt(Math.floor(Math.random() * chars.length))).join('');
+};
 
 export async function getStoreSettings(): Promise<StoreSettings> {
   const { data, error } = await supabase.from('store_settings').select('*').limit(1).single();
@@ -34,10 +41,12 @@ function toProduct(row: any): Product {
     categoryId: row.category_id || row.category,
     category: row.categories?.name || row.category || 'Uncategorized',
     price: Number(row.price),
+    costPrice: Number(row.cost_price || 0),
     quantity: row.quantity,
     barcode: row.barcode,
     description: row.description ?? undefined,
     image_url: row.product_images?.[0]?.image_url || row.image_url || undefined,
+    is_returnable: row.is_returnable ?? true,
   };
 }
 
@@ -45,16 +54,19 @@ function toProduct(row: any): Product {
 function toOrder(row: any): Order {
   return {
     id: row.id,
-    customerId: row.e_customer_id,
+    customerId: row.customer_id,
     deliveryPointId: row.delivery_point_id,
     deliveryAddress: row.delivery_address,
     totalAmount: Number(row.total_amount),
-    status: row.status,
-    paymentMethod: row.payment_method,
+    deliveryFee: Number(row.delivery_fee || 0),
+    status: row.status as Order['status'],
+    paymentMethodId: row.payment_method_id as Order['paymentMethodId'],
     paymentReference: row.payment_reference,
-    promoName: row.promo_name,
+    promotionId: row.promotion_id,
+    promoName: row.promotions?.name,
+    isReturned: row.is_returned,
     createdAt: row.created_at,
-    items: (row.online_order_items ?? []).map(toOrderItem),
+    items: (row.transaction_items ?? []).map(toOrderItem),
   };
 }
 
@@ -64,10 +76,12 @@ function toOrderItem(row: any): OrderItem {
     id: row.id,
     orderId: row.order_id,
     productId: row.product_id,
-    productName: row.product_name,
+    productName: row.products?.name, // From join
     price: Number(row.price),
+    costPrice: Number(row.cost_price || 0),
     quantity: row.quantity,
     subtotal: Number(row.subtotal),
+    returnedQuantity: row.returned_quantity || 0,
   };
 }
 
@@ -81,7 +95,7 @@ function toDeliveryPoint(row: any) {
   };
 }
 
-// ─── Products (shared with POS) ───────────────────────────────────────────────
+// ─── Products ───────────────────────────────────────────────
 export async function getProducts(): Promise<Product[]> {
   const { data, error } = await supabase.from('products').select('*, product_images(image_url), categories(name)').order('name');
   if (error) throw error;
@@ -93,6 +107,16 @@ export async function getProductsByCategory(category: string): Promise<Product[]
     .from('products').select('*, product_images(image_url), categories(name)').eq('category', category).order('name');
   if (error) throw error;
   return (data ?? []).map(toProduct);
+}
+
+export async function getProductById(id: string): Promise<Product | null> {
+  const { data, error } = await supabase
+    .from('products')
+    .select('*, product_images(image_url), categories(name)')
+    .eq('id', id)
+    .single();
+  if (error) return null;
+  return toProduct(data);
 }
 
 export async function getCategories(): Promise<string[]> {
@@ -109,62 +133,103 @@ export async function getDeliveryPoints() {
   return (data ?? []).map(toDeliveryPoint);
 }
 
-// ─── Auth (storefront users) ──────────────────────────────────────────────────
+// ─── Auth (unified customers) ──────────────────────────────────────────────────
 export async function getStorefrontUserById(id: string) {
   const { data, error } = await supabase
-    .from('e_customer').select('*').eq('id', id).maybeSingle();
+    .from('customers').select('*').eq('id', id).maybeSingle();
   if (error || !data) return null;
   return data;
 }
 
 export async function getStorefrontUserByEmail(email: string) {
   const { data, error } = await supabase
-    .from('e_customer').select('*').eq('email', email.toLowerCase()).maybeSingle();
+    .from('customers').select('*').eq('email', email.toLowerCase()).maybeSingle();
   if (error) return null;
   return data;
 }
 
 export async function createStorefrontUser(name: string, email: string, password: string, phone?: string): Promise<StorefrontUser> {
   const hash = await bcrypt.hash(password, 10);
+  const normalizedEmail = email.toLowerCase();
+  
+  // 1. Check if user already exists (likely as an IN_STORE customer)
+  const { data: existing } = await supabase
+    .from('customers')
+    .select('id, type')
+    .eq('email', normalizedEmail)
+    .maybeSingle();
+
+  if (existing) {
+    if (existing.type === 'IN_STORE') {
+      // UPGRADE: This was an in-store customer, now they are BOTH
+      const { data, error } = await supabase
+        .from('customers')
+        .update({ 
+          name, 
+          password_hash: hash, 
+          phone: phone ?? null, 
+          type: 'BOTH' 
+        })
+        .eq('id', existing.id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    } else {
+      // Conflict: Already an ONLINE or BOTH user
+      throw new Error('Account already exists. Please sign in.');
+    }
+  }
+
+  // 2. New user
   const { data, error } = await supabase
-    .from('e_customer')
-    .insert({ name, email: email.toLowerCase(), password_hash: hash, phone: phone ?? null, loyalty_points: 100 })
+    .from('customers')
+    .insert({ 
+      name, 
+      email: normalizedEmail, 
+      password_hash: hash, 
+      phone: phone ?? null, 
+      loyalty_points: 100,
+      type: 'ONLINE' 
+    })
     .select().single();
+    
   if (error) throw error;
   return data;
 }
 
 export async function updateStorefrontUser(id: string, updates: { name?: string; phone?: string }) {
-  await supabase.from('e_customer').update(updates).eq('id', id);
+  await supabase.from('customers').update(updates).eq('id', id);
 }
 
 export async function deleteStorefrontAccount(id: string) {
-  // Clear cart and other related data usually handled by ON DELETE CASCADE in DB
-  await supabase.from('e_customer').delete().eq('id', id);
+  await supabase.from('customers').delete().eq('id', id);
 }
 
 // ─── Orders ───────────────────────────────────────────────────────────────────
 export async function placeOrder(orderData: {
-  storefrontUserId?: string;
+  customerId?: string;
   deliveryPointId?: string;
   deliveryAddress?: string;
   totalAmount: number;
-  paymentMethod: string;
-  items: { productId: string; productName: string; price: number; quantity: number; subtotal: number }[];
-  promoName?: string;
-  promoCode?: string;
+  deliveryFee: number;
+  paymentMethodId: string;
+  items: { productId: string; price: number; costPrice: number; quantity: number; subtotal: number }[];
+  promotionId?: string;
   paymentReference?: string;
 }) {
   const { data: orderRow, error: orderErr } = await supabase
     .from('online_orders')
     .insert({
-      e_customer_id: orderData.storefrontUserId ?? null,
+      customer_id: orderData.customerId ?? null,
       delivery_point_id: orderData.deliveryPointId ?? null,
       delivery_address: orderData.deliveryAddress ?? null,
       total_amount: orderData.totalAmount,
-      payment_method: orderData.paymentMethod,
-      payment_reference: orderData.paymentReference ?? null,
-      promo_name: orderData.promoName ?? null,
+      delivery_fee: orderData.deliveryFee,
+      payment_method_id: orderData.paymentMethodId,
+      payment_reference: orderData.paymentReference || (orderData.paymentMethodId !== 'PAY_ON_DELIVERY' ? generateReference(orderData.paymentMethodId) : null),
+      promotion_id: orderData.promotionId || null,
       status: 'PENDING',
     }).select().single();
   if (orderErr) throw orderErr;
@@ -172,47 +237,48 @@ export async function placeOrder(orderData: {
   const itemRows = orderData.items.map(i => ({
     order_id: orderRow.id,
     product_id: i.productId,
-    product_name: i.productName,
     price: i.price,
+    cost_price: i.costPrice || 0,
     quantity: i.quantity,
     subtotal: i.subtotal,
   }));
-  const { error: itemsErr } = await supabase.from('online_order_items').insert(itemRows);
+  const { error: itemsErr } = await supabase.from('transaction_items').insert(itemRows);
   if (itemsErr) throw itemsErr;
 
-  // Update product inventory (decrement quantity)
+  const { error: paymentErr } = await supabase.from('payments').insert({
+    order_id: orderRow.id,
+    amount: orderData.totalAmount,
+    payment_method_id: orderData.paymentMethodId,
+  });
+  if (paymentErr) throw paymentErr;
+
+  // Update product inventory
   for (const item of orderData.items) {
-    // 1. Get current quantity
     const { data: prod } = await supabase.from('products').select('quantity').eq('id', item.productId).single();
     if (prod) {
       const newQty = Math.max(0, prod.quantity - item.quantity);
       await supabase.from('products').update({ quantity: newQty }).eq('id', item.productId);
       
-      // 2. Log to inventory
       await supabase.from('inventory').insert({
         product_id: item.productId,
         change: -item.quantity,
-        reason: 'SALE', // Label as SALE
+        reason: 'SALE',
+        customer_id: orderData.customerId,
       });
     }
   }
 
-  // 3. Clear persistent cart
-  if (orderData.storefrontUserId) {
-    await supabase.from('e_cart').delete().eq('e_customer_id', orderData.storefrontUserId);
-  }
-
   // Handle Promotion Usage Count
-  if (orderData.promoCode) {
-    const { data: promo } = await supabase.from('promotions').select('id, usage_count').eq('code', orderData.promoCode).single();
+  if (orderData.promotionId) {
+    const { data: promo } = await supabase.from('promotions').select('usage_count').eq('id', orderData.promotionId).single();
     if (promo) {
-      await supabase.from('promotions').update({ usage_count: (promo.usage_count || 0) + 1 }).eq('id', promo.id);
+      await supabase.from('promotions').update({ usage_count: (promo.usage_count || 0) + 1 }).eq('id', orderData.promotionId);
     }
   }
 
-  // 4. Update Loyalty Points (50 pts per purchase day)
-  if (orderData.storefrontUserId) {
-    const { data: customer } = await supabase.from('e_customer').select('loyalty_points, last_purchase_date, order_count').eq('id', orderData.storefrontUserId).single();
+  // Update Loyalty Points
+  if (orderData.customerId) {
+    const { data: customer } = await supabase.from('customers').select('loyalty_points, last_purchase_date, order_count').eq('id', orderData.customerId).single();
     if (customer) {
       const today = new Date().toISOString().split('T')[0];
       const lastDate = customer.last_purchase_date;
@@ -224,32 +290,62 @@ export async function placeOrder(orderData: {
         newPoints += 10;
       }
 
-      await supabase.from('e_customer').update({ 
+      await supabase.from('customers').update({ 
         loyalty_points: newPoints,
         last_purchase_date: today,
         order_count: Number(customer.order_count || 0) + 1
-      }).eq('id', orderData.storefrontUserId);
+      }).eq('id', orderData.customerId);
     }
   }
 
-  return toOrder({ ...orderRow, online_order_items: itemRows });
+  return toOrder({ ...orderRow, transaction_items: itemRows });
 }
 
 export async function getOrdersByUser(storefrontUserId: string) {
-  const { data, error } = await supabase
+  const { data: onlineOrders, error } = await supabase
     .from('online_orders')
-    .select('*, online_order_items(*)')
-    .eq('e_customer_id', storefrontUserId)
+    .select('*, transaction_items(*, products(name)), promotions(name)')
+    .eq('customer_id', storefrontUserId)
     .order('created_at', { ascending: false });
   if (error) throw error;
-  return (data ?? []).map(toOrder);
+  
+  if (!onlineOrders || onlineOrders.length === 0) return [];
+
+  // Fetch returns to calculate returned quantities for these orders
+  const { data: returnData } = await supabase
+    .from('returns')
+    .select('id, order_id, status, return_items(product_id, quantity)')
+    .eq('customer_id', storefrontUserId)
+    .eq('status', 'COMPLETED'); // Only count successfully resolved/refunded returns
+
+  const orderReturnsMap: Record<string, Record<string, number>> = {};
+  if (returnData) {
+    for (const r of returnData) {
+      if (r.order_id) {
+        if (!orderReturnsMap[r.order_id]) orderReturnsMap[r.order_id] = {};
+        for (const i of r.return_items) {
+          orderReturnsMap[r.order_id][i.product_id] = (orderReturnsMap[r.order_id][i.product_id] || 0) + i.quantity;
+        }
+      }
+    }
+  }
+
+  // Inject returned_quantity into transaction_items
+  const enrichedOrders = onlineOrders.map(order => {
+    const enrichedItems = order.transaction_items.map((item: { product_id: string; [key: string]: unknown }) => ({
+      ...item,
+      returned_quantity: orderReturnsMap[order.id]?.[item.product_id] || 0
+    }));
+    return { ...order, transaction_items: enrichedItems };
+  });
+
+  return enrichedOrders.map(toOrder);
 }
 
 export async function cancelOrder(orderId: string) {
-  // 1. Get order details first
   const { data: order, error: fetchErr } = await supabase
     .from('online_orders')
-    .select('*, online_order_items(*)')
+    .select('*, transaction_items(*)')
     .eq('id', orderId)
     .single();
     
@@ -258,7 +354,6 @@ export async function cancelOrder(orderId: string) {
     throw new Error(`Order cannot be cancelled in its current state: ${order.status}`);
   }
 
-  // 2. Update status to CANCELLED
   const { error: updateErr } = await supabase
     .from('online_orders')
     .update({ status: 'CANCELLED' })
@@ -266,15 +361,14 @@ export async function cancelOrder(orderId: string) {
     
   if (updateErr) throw updateErr;
 
-  // 3. Restore inventory
-  for (const item of order.online_order_items) {
+  for (const item of order.transaction_items) {
     const { data: prod } = await supabase.from('products').select('quantity').eq('id', item.product_id).single();
     if (prod) {
       await supabase.from('products').update({ quantity: prod.quantity + item.quantity }).eq('id', item.product_id);
       await supabase.from('inventory').insert({
         product_id: item.product_id,
         change: item.quantity,
-        reason: 'RESTOCK', // Cancelled order restoration
+        reason: 'RESTOCK',
       });
     }
   }
@@ -294,13 +388,13 @@ export async function getPromotionByCode(code: string): Promise<Promotion | null
     id: data.id,
     name: data.name,
     code: data.code,
-    discountType: data.discount_type,
+    discountType: data.discount_type as Promotion['discountType'],
     discountValue: Number(data.discount_value),
     isActive: data.is_active,
     minSubtotal: data.min_subtotal ? Number(data.min_subtotal) : undefined,
     startDate: data.start_date || undefined,
     endDate: data.end_date || undefined,
-    usageCount: data.usage_count,
+    usageCount: Number(data.usage_count || 0),
     createdAt: data.created_at,
   };
 }
@@ -310,15 +404,15 @@ export async function getPromotionByCode(code: string): Promise<Promotion | null
 export async function getReviews(productId: string): Promise<Review[]> {
   const { data, error } = await supabase
     .from('product_reviews')
-    .select('*, e_customer(name)')
+    .select('*, customers(name)')
     .eq('product_id', productId)
     .order('created_at', { ascending: false });
   if (error) throw error;
   return (data ?? []).map((r) => ({
     id: r.id,
     productId: r.product_id,
-    customerId: r.e_customer_id,
-    customerName: (r.e_customer as { name: string } | null)?.name || 'Anonymous',
+    customerId: r.customer_id,
+    customerName: (r.customers as { name: string } | null)?.name || 'Anonymous',
     rating: r.rating,
     comment: r.comment || undefined,
     createdAt: r.created_at
@@ -328,38 +422,116 @@ export async function getReviews(productId: string): Promise<Review[]> {
 export async function addReview(productId: string, storefrontUserId: string, rating: number, comment: string) {
   const { error } = await supabase.from('product_reviews').insert({
     product_id: productId,
-    e_customer_id: storefrontUserId,
+    customer_id: storefrontUserId,
     rating,
     comment,
   });
   if (error) throw error;
 }
 
-// ─── Persistent Cart ─────────────────────────────────────────────────────────
+// ─── Returns ──────────────────────────────────────────────────────────────────
+export async function getReturnsByUser(customerId: string): Promise<Return[]> {
+  const { data, error } = await supabase
+    .from('returns')
+    .select(`
+      *,
+      items:return_items(*, products(name))
+    `)
+    .eq('customer_id', customerId)
+    .order('requested_at', { ascending: false });
 
-export async function syncCartToDB(userId: string, items: CartItem[]) {
-  try {
-    const { error } = await supabase
-      .from('e_cart')
-      .upsert({ e_customer_id: userId, items, updated_at: new Date().toISOString() }, { onConflict: 'e_customer_id' });
-    if (error) {
-      console.error('Cart sync database error:', error.message, error.details);
-    }
-  } catch (err) {
-    console.error('Cart sync unexpected error:', err);
+  if (error) throw error;
+  
+  return (data || []).map(r => ({
+    id: r.id,
+    saleId: r.sale_id,
+    orderId: r.order_id,
+    customerId: r.customer_id,
+    initiatedByStaffId: r.initiated_by_staff_id,
+    processedByStaffId: r.processed_by_staff_id,
+    source: r.source as 'IN_STORE' | 'ONLINE',
+    reason: r.reason,
+    status: r.status as Return['status'],
+    refundAmount: r.refund_amount ? Number(r.refund_amount) : null,
+    rejectionReason: r.rejection_reason,
+    requestedAt: r.requested_at,
+    processedAt: r.processed_at,
+    completedAt: r.completed_at,
+    // @ts-expect-ignore
+    items: r.items?.map((i: { id: string, return_id: string, product_id: string, products: { name: string } | null, quantity: number, unit_price: string | number, subtotal: string | number }) => ({
+      id: i.id,
+      returnId: i.return_id,
+      productId: i.product_id,
+      productName: i.products?.name,
+      quantity: i.quantity,
+      unitPrice: Number(i.unit_price),
+      subtotal: Number(i.subtotal)
+    })) || []
+  }));
+}
+
+export async function checkReturnEligibility(orderId: string, customerId: string): Promise<void> {
+  // Rule: Max 2 returns per order/sale
+  const { count: returnCount } = await supabase
+    .from('returns')
+    .select('*', { count: 'exact', head: true })
+    .eq('order_id', orderId)
+    .not('status', 'eq', 'REJECTED');
+    
+  if (returnCount && returnCount >= 2) {
+    throw new Error('Maximum limit of 2 returns per order has been reached.');
+  }
+
+  // Rule: Max 2 returns per customer per day
+  const today = new Date().toISOString().split('T')[0]; // simple YYYY-MM-DD
+  const { count: todayReturnCount } = await supabase
+    .from('returns')
+    .select('*', { count: 'exact', head: true })
+    .eq('customer_id', customerId)
+    .gte('requested_at', `${today}T00:00:00.000Z`);
+
+  if (todayReturnCount && todayReturnCount >= 2) {
+    throw new Error('You have reached the daily limit of 2 return requests.');
   }
 }
 
-export async function getPersistentCart(userId: string) {
-  const { data, error } = await supabase
-    .from('e_cart')
-    .select('items')
-    .eq('e_customer_id', userId)
-    .maybeSingle();
-  if (error || !data) return [];
-  return data.items;
-}
+export async function requestOnlineReturn(
+  orderId: string, 
+  customerId: string, 
+  reason: string, 
+  items: { productId: string, quantity: number, unitPrice: number }[]
+) {
+  // 1. Calculate refund (80%). Delivery fee is excluded based on policy.
+  const returnItemsSubtotal = items.reduce((acc, curr) => acc + (curr.quantity * curr.unitPrice), 0);
+  const refundAmount = Number((returnItemsSubtotal * 0.8).toFixed(2));
 
-export async function clearPersistentCart(userId: string) {
-  await supabase.from('e_cart').delete().eq('e_customer_id', userId);
+  // 2. Insert Returns header
+  const { data: returnRec, error } = await supabase
+    .from('returns')
+    .insert({
+      order_id: orderId,
+      customer_id: customerId,
+      source: 'ONLINE',
+      reason,
+      status: 'REQUESTED',
+      refund_amount: refundAmount
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  // 3. Insert items
+  const itemRows = items.map(i => ({
+    return_id: returnRec.id,
+    product_id: i.productId,
+    quantity: i.quantity,
+    unit_price: i.unitPrice,
+    subtotal: Number((i.quantity * i.unitPrice).toFixed(2))
+  }));
+
+  const { error: itemsErr } = await supabase.from('return_items').insert(itemRows);
+  if (itemsErr) throw itemsErr;
+
+  return returnRec;
 }

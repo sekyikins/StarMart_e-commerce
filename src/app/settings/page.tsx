@@ -67,7 +67,7 @@ function SettingsContent() {
         <p className="text-muted-foreground font-medium">Manage your personal information, security, and preferences.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         
         {/* Navigation / Sections */}
         <div>
@@ -108,16 +108,16 @@ function SettingsContent() {
         </div>
 
         {/* Main Form */}
-        <div className="md:col-span-2 space-y-6">
+        <div className="md:col-span-2 space-y-3">
           
           {/* Profile Section */}
-          <div className="bg-card rounded-4xl border-2 border-border p-8 shadow-2xl shadow-indigo-500/15 mb-8">
-            <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
+          <div className="bg-card rounded-2xl border-2 border-border p-5 shadow-2xl shadow-indigo-500/10 mb-5">
+            <h3 className="text-xl font-bold mb-5 flex items-center gap-2">
               <User className="h-5 w-5 text-primary" />
               Public Profile
             </h3>
             
-            <form onSubmit={handleUpdate} className="grid grid-cols-1 gap-6">
+            <form onSubmit={handleUpdate} className="grid grid-cols-1 gap-3">
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-1">Display Name</label>
                 <div className="relative">
@@ -173,8 +173,8 @@ function SettingsContent() {
           </div>
 
           {/* Preferences Section */}
-          <div className="bg-card rounded-4xl border-2 border-border p-8 shadow-2xl shadow-indigo-500/15 mb-8">
-            <h3 className="text-xl font-bold mb-6">Preferences</h3>
+          <div className="bg-card rounded-2xl border-2 border-border p-5 shadow-2xl shadow-indigo-500/10 mb-5">
+            <h3 className="text-xl font-bold mb-5">Preferences</h3>
             <div className="flex items-center justify-between p-4 rounded-2xl bg-muted/20 border border-border">
               <div className="flex items-center gap-4">
                 <div className="h-12 w-12 rounded-xl bg-orange-100 dark:bg-orange-900/40 text-orange-600 flex items-center justify-center">
@@ -190,7 +190,7 @@ function SettingsContent() {
           </div>
 
           {/* Danger Zone Section */}
-          <div className="bg-red-500/5 rounded-4xl border-2 border-red-500/20 p-8 shadow-xl shadow-red-500/5">
+          <div className="bg-red-500/5 rounded-2xl border-2 border-red-500/20 p-6 shadow-xl shadow-red-500/5">
             <h3 className="text-xl font-bold text-red-500 mb-6 flex items-center gap-2">
               <AlertTriangle className="h-5 w-5" />
               Danger Zone
@@ -237,7 +237,7 @@ function SettingsContent() {
       {showLogoutConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowLogoutConfirm(false)} />
-          <div className="relative bg-card border border-border w-full max-w-sm rounded-4xl p-8 shadow-2xl animate-in zoom-in-95">
+          <div className="relative bg-card border border-border w-full max-w-sm rounded-2xl p-8 shadow-2xl animate-in zoom-in-95">
             <div className="flex justify-center mb-6">
               <div className="h-16 w-16 rounded-full bg-red-100 text-red-600 flex items-center justify-center">
                 <LogOut className="h-8 w-8" />
@@ -267,7 +267,7 @@ function SettingsContent() {
       {showDeleteConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowDeleteConfirm(false)} />
-          <div className="relative bg-card border-2 border-red-500/20 w-full max-w-sm rounded-4xl p-8 shadow-2xl animate-in zoom-in-95">
+          <div className="relative bg-card border-2 border-red-500/20 w-full max-w-sm rounded-2xl p-8 shadow-2xl animate-in zoom-in-95">
             <div className="flex justify-center mb-6">
               <div className="h-16 w-16 rounded-full bg-red-100 text-red-600 flex items-center justify-center">
                 <Trash2 className="h-8 w-8" />

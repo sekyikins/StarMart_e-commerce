@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useSyncExternalStore, startTransition } from 'react';
-import { getStorefrontUserByEmail, getStorefrontUserById, getPersistentCart, deleteStorefrontAccount } from './db';
+import { getStorefrontUserByEmail, getStorefrontUserById, deleteStorefrontAccount } from './db';
 import { useCartStore } from './store';
 import bcrypt from 'bcryptjs';
 
@@ -13,12 +13,11 @@ interface AuthContextType {
   logout: () => void;
   refreshUser: (u: StorefrontUser) => void;
   isLoading: boolean;
-  syncCart: (userId: string) => Promise<void>;
   deleteAccount: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
-  user: null, login: async () => false, logout: () => {}, refreshUser: () => {}, isLoading: true, syncCart: async () => {}, deleteAccount: async () => {},
+  user: null, login: async () => false, logout: () => {}, refreshUser: () => {}, isLoading: true, deleteAccount: async () => {},
 });
 
 // Modern React pattern to track hydration without triggering cascading renders
@@ -31,13 +30,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   
   // Track hydration state using the same modern pattern as ThemeToggle
   const isMounted = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
-
-  const syncCart = async (userId: string) => {
-    const items = await getPersistentCart(userId);
-    if (items && items.length > 0) {
-      useCartStore.getState().setItems(items);
-    }
-  };
 
   const logout = () => {
     setUser(null);
@@ -63,12 +55,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
            startTransition(() => {
              setUser(parsed);
            });
-           
-           getPersistentCart(parsed.id).then(items => {
-             if (items && items.length > 0) {
-               useCartStore.getState().setItems(items);
-             }
-           });
         }).catch(() => {
            logout();
         });
@@ -88,12 +74,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const valid = await bcrypt.compare(password, dbUser.password_hash);
     if (!valid) return false;
     const u: StorefrontUser = {
-      id: dbUser.id, name: dbUser.name, email: dbUser.email,
-      phone: dbUser.phone ?? undefined, loyalty_points: dbUser.loyalty_points, created_at: dbUser.created_at,
+      id: dbUser.id, 
+      name: dbUser.name, 
+      email: dbUser.email,
+      phone: dbUser.phone ?? undefined, 
+      loyalty_points: dbUser.loyalty_points, 
+      type: dbUser.type,
+      created_at: dbUser.created_at,
     };
     setUser(u);
     localStorage.setItem('ec_user', JSON.stringify(u));
-    await syncCart(u.id);
     return true;
   };
 
@@ -110,7 +100,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, refreshUser, isLoading, syncCart, deleteAccount }}>
+    <AuthContext.Provider value={{ user, login, logout, refreshUser, isLoading, deleteAccount }}>
       {children}
     </AuthContext.Provider>
   );

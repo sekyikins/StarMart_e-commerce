@@ -43,7 +43,7 @@ function LoginContent() {
         <form onSubmit={handleLogin} className="space-y-4">
           <div className="relative">
             <Mail className="absolute left-3 top-3 h-5 w-5 text-muted-foreground"/>
-            <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email address" required className="w-full h-11 pl-10 pr-4 rounded-xl border border-border bg-card text-foreground outline-none focus:ring-2 focus:ring-primary text-sm"/>
+            <input type="email" value={email} autoFocus onChange={e => setEmail(e.target.value)} placeholder="Email address" required className="w-full h-11 pl-10 pr-4 rounded-xl border border-border bg-card text-foreground outline-none focus:ring-2 focus:ring-primary text-sm"/>
           </div>
           <div className="relative">
             <Lock className="absolute left-3 top-3 h-5 w-5 text-muted-foreground"/>

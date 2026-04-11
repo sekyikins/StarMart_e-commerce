@@ -11,6 +11,7 @@ import Link from 'next/link';
 import { useToastStore, useSettingsStore } from '@/lib/store';
 import { Order, OrderItem } from '@/lib/types';
 import { useRealtimeTable, ConnectionStatus } from '@/hooks/useRealtimeTable';
+import { RequestReturnModal } from '@/components/orders/RequestReturnModal';
 
 const STATUS_META: Record<string, { label: string; color: string; Icon: React.ElementType; desc: string }> = {
   PENDING:   { label: 'Pending',    color: 'text-yellow-600 bg-yellow-50 dark:bg-yellow-950/30 border-yellow-200',  Icon: Clock,        desc: 'Waiting for staff to confirm your order.' },
@@ -40,6 +41,9 @@ function OrderCard({ order, onUpdate }: { order: Order; onUpdate: () => void }) 
   const { addToast } = useToastStore();
   const [cancelling, setCancelling] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
+
+  const past7Days = ((Date.now() - new Date(order.createdAt).getTime()) / (1000 * 3600 * 24)) > 7;
 
   const copyOrderId = () => {
     navigator.clipboard.writeText(order.id.slice(-8).toUpperCase());
@@ -72,8 +76,8 @@ function OrderCard({ order, onUpdate }: { order: Order; onUpdate: () => void }) 
           <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">ORDER ID</p>
           <button 
             onClick={copyOrderId} 
-            className="flex items-center gap-1.5 text-sm font-bold mt-0.5 hover:text-primary transition-colors text-left"
-            title="Click to copy full Order ID"
+            className="flex items-center gap-1.5 text-sm cursor-pointer font-bold mt-0.5 hover:text-primary transition-colors text-left"
+            title="Click to copy Order ID"
           >
             #{order.id.slice(-8).toUpperCase()}
             {copied ? <CheckCircle2 className="h-3 w-3 text-success" /> : <Copy className="h-3 w-3 opacity-50" />}
@@ -113,26 +117,49 @@ function OrderCard({ order, onUpdate }: { order: Order; onUpdate: () => void }) 
             {cancelling ? 'CANCELLING...' : 'CANCEL ORDER'}
           </button>
         )}
+        {order.status === 'DELIVERED' && !order.isReturned && (
+          <button 
+             onClick={() => setIsReturnModalOpen(true)}
+             disabled={past7Days}
+             className={`text-[10px] font-bold uppercase tracking-widest ${past7Days ? 'text-muted-foreground opacity-50 cursor-not-allowed' : 'text-primary hover:underline cursor-pointer'}`}
+             title={past7Days ? 'Return window has expired (7 days)' : 'Request a return'}
+          >
+             REQUEST RETURN
+          </button>
+        )}
       </div>
 
       <div className="p-5 space-y-3">
         {(order.items ?? []).map((item: OrderItem) => (
           <div key={item.id} className="flex justify-between text-sm items-center">
             <div className="flex items-center gap-2">
-              <div className="h-6 w-6 rounded bg-muted flex items-center justify-center text-[10px] font-bold text-muted-foreground uppercase">{item.productName.charAt(0)}</div>
-              <span className="text-foreground/80 font-medium">{item.productName} <span className="text-muted-foreground text-xs ml-1 font-bold">×{item.quantity}</span></span>
+              <div className="h-6 w-6 rounded bg-muted flex items-center justify-center text-[10px] font-bold text-muted-foreground uppercase">{item.productName?.charAt(0) || 'P'}</div>
+              <span className="text-foreground/80 font-medium">
+                 {item.productName || 'Product'} 
+                 <span className="text-muted-foreground text-xs ml-1 font-bold">×{item.quantity}</span>
+                 {(item.returnedQuantity ?? 0) > 0 && (
+                    <span className="text-destructive text-xs ml-1 font-bold">- {item.returnedQuantity} returned</span>
+                 )}
+              </span>
             </div>
             <span className="font-bold text-foreground">{useSettingsStore.getState().currencySymbol}{item.subtotal.toFixed(2)}</span>
           </div>
         ))}
       </div>
       <div className="px-5 pb-5 pt-2 border-t border-border/50 text-[10px] text-muted-foreground flex items-center gap-3 font-bold uppercase tracking-widest flex-wrap">
-        <span className="flex items-center gap-1"><CreditCard className="h-3 w-3" />{order.paymentMethod?.replace(/_/g,' ')}</span>
+        <span className="flex items-center gap-1"><CreditCard className="h-3 w-3" />{order.paymentMethodId?.replace(/_/g,' ')}</span>
         <span>·</span>
         <span className="flex items-center gap-1 flex-1 truncate"><MapPin className="h-3 w-3" />{order.deliveryAddress || 'Pick-up Point'}</span>
         <span>·</span>
         <span>{new Date(order.createdAt).toLocaleDateString(undefined, { month:'short', day:'numeric' })}</span>
       </div>
+
+      <RequestReturnModal 
+        order={order}
+        isOpen={isReturnModalOpen}
+        onClose={() => setIsReturnModalOpen(false)}
+        onSuccess={onUpdate}
+      />
     </div>
   );
 }
@@ -152,7 +179,7 @@ function OrdersContent() {
     table: 'online_orders',
     initialData: [],
     fetcher,
-    filter: user ? { column: 'e_customer_id', value: user.id } : undefined,
+    filter: user ? { column: 'customer_id', value: user.id } : undefined,
     disabled: !user,
     // online_orders rows are fetched with a join (order items) and a camelCase mapper.
     // Raw realtime payloads are snake_case without joins, so we must refetch on any change.

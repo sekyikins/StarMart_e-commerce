@@ -16,16 +16,19 @@ export interface Product {
   categoryId?: string;
   category: string;
   price: number;
+  costPrice: number;
   quantity: number;
   barcode: string;
   image_url?: string;
   description?: string;
+  is_returnable?: boolean;
 }
 
 export interface CartItem {
   productId: string;
   productName: string;
   price: number;
+  costPrice: number;
   quantity: number;
   subtotal: number;
   maxQuantity: number;
@@ -43,10 +46,12 @@ export interface OrderItem {
   id: string;
   orderId: string;
   productId: string;
-  productName: string;
+  productName?: string; // Populated via join
   price: number;
+  costPrice: number;
   quantity: number;
   subtotal: number;
+  returnedQuantity?: number;
 }
 
 export interface Order {
@@ -56,10 +61,13 @@ export interface Order {
   deliveryAddress?: string;
   items: OrderItem[];
   totalAmount: number;
+  deliveryFee: number;
   status: 'PENDING' | 'CONFIRMED' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';
-  paymentMethod: 'PAYSTACK' | 'PAY_ON_DELIVERY';
+  paymentMethodId: 'PAYSTACK' | 'PAY_ON_DELIVERY';
   paymentReference?: string;
-  promoName?: string;
+  promotionId?: string;
+  promoName?: string; // From join
+  isReturned?: boolean;
   createdAt: string;
 }
 
@@ -69,6 +77,7 @@ export interface StorefrontUser {
   email: string;
   phone?: string;
   loyalty_points: number;
+  type: 'IN_STORE' | 'ONLINE' | 'BOTH';
   created_at: string;
 }
 
@@ -104,4 +113,36 @@ export interface Promotion {
   endDate?: string;
   usageCount: number;
   createdAt: string;
+}
+
+export interface ReturnItem {
+  id: string;
+  returnId: string;
+  productId: string;
+  productName?: string;
+  quantity: number;
+  unitPrice: number;
+  subtotal: number;
+}
+
+export interface Return {
+  id: string;
+  saleId: string | null;
+  orderId: string | null;
+  customerId: string | null;
+  initiatedByStaffId: string | null;
+  processedByStaffId: string | null;
+  source: 'IN_STORE' | 'ONLINE';
+  reason: string;
+  status: 'REQUESTED' | 'APPROVED' | 'REJECTED' | 'COMPLETED';
+  refundAmount: number | null;
+  rejectionReason: string | null;
+  requestedAt: string;
+  processedAt: string | null;
+  completedAt: string | null;
+  items: ReturnItem[];
+  // Joined fields
+  customerName?: string;
+  initiatedByName?: string;
+  processedByName?: string;
 }

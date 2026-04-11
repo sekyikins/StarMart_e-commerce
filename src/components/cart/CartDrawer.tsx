@@ -4,12 +4,14 @@ import { useCartStore, useSettingsStore, useToastStore } from '@/lib/store';
 import { useAuth } from '@/lib/auth';
 import { placeOrder, getDeliveryPoints, getPromotionByCode, getProducts } from '@/lib/db';
 import { Promotion } from '@/lib/types';
-import { X, Minus, Plus, ShoppingBag, MapPin, CreditCard, CheckCircle2, Package, Copy, ChevronLeft, ArrowRight, Loader2, Search, AlertCircle, Tag, type LucideIcon } from 'lucide-react';
+import { X, Minus, Plus, ShoppingBag, MapPin, CreditCard, CheckCircle2, Package, Copy, ChevronLeft, ArrowRight, Loader2, AlertCircle, Tag, type LucideIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
 
 const PaystackHandler = dynamic(() => import('./PaystackHandler'), { ssr: false });
+import confetti from 'canvas-confetti';
+import { Check } from 'lucide-react';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -24,7 +26,7 @@ import { Product } from '@/lib/types';
 export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
   const cart = useCartStore();
   const { user } = useAuth();
-  const { currencySymbol, currency } = useSettingsStore();
+  const { currencySymbol, currency, storeName } = useSettingsStore();
   const { addToast } = useToastStore();
   
   const paystackInitializeRef = React.useRef<((options: { onSuccess?: (res: { reference: string }) => void; onClose?: () => void }) => void) | null>(null);
@@ -61,6 +63,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
   const [isApplyingPromo, setIsApplyingPromo] = useState(false);
 
   const subtotal = cart.getTotal();
+  const deliveryFee = useCustomAddress ? 15 : 0;
+  
   let promoDiscount = 0;
   if (appliedPromo) {
     if (appliedPromo.discountType === 'PERCENT') {
@@ -69,7 +73,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
       promoDiscount = appliedPromo.discountValue;
     }
   }
-  const finalTotal = Math.max(0, subtotal - promoDiscount);
+  const finalTotal = Math.max(0, subtotal - promoDiscount + deliveryFee);
   
   const handlePaystackPayment = () => {
     if (!user?.email) {
@@ -93,41 +97,12 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
         setPaystackReference(response.reference);
         setIsPaymentCompleted(true);
         setIsProcessing(false);
-        setStep('SUMMARY');
-        addToast('Payment secured! Proceeding to summary.', 'success');
       },
       onClose: () => {
         setIsProcessing(false);
         addToast('Payment cancelled.', 'info');
       },
     });
-  };
-
-  React.useEffect(() => {
-    if (isOpen && step === 'DELIVERY') {
-      getDeliveryPoints().then(setDeliveryPoints).catch(console.error);
-    }
-  }, [isOpen, step]);
-
-  React.useEffect(() => {
-    if (step === 'SUCCESS') {
-      const timer = setTimeout(() => {
-        setStep('CART');
-        onClose();
-      }, 10000);
-      return () => clearTimeout(timer);
-    }
-  }, [step, onClose]);
-
-  const handleStartCheckout = () => {
-    if (!user) {
-      onClose();
-      // Safely return the user to the page they were on instead of a non-existent checkout route
-      const returnUrl = window.location.pathname !== '/login' ? window.location.pathname : '/';
-      router.push(`/login?next=${encodeURIComponent(returnUrl)}`);
-      return;
-    }
-    setStep('DELIVERY');
   };
 
   const handleApplyPromo = async () => {
@@ -157,46 +132,101 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
     setPromoError('');
   };
 
-  const handlePlaceOrder = async () => {
+  const handlePlaceOrder = React.useCallback(async () => {
     if (!user) return;
     setIsProcessing(true);
     try {
       const order = await placeOrder({
-        storefrontUserId: user.id,
+        customerId: user.id,
         deliveryPointId: useCustomAddress ? undefined : selectedDeliveryPoint || undefined,
         deliveryAddress: useCustomAddress ? customAddress : undefined,
         totalAmount: finalTotal,
-        paymentMethod,
+        deliveryFee: deliveryFee,
+        paymentMethodId: paymentMethod,
         paymentReference: paystackReference || undefined,
-        promoName: appliedPromo?.name,
-        promoCode: appliedPromo?.code,
-        items: cart.items.map(i => ({ productId: i.productId, productName: i.productName, price: i.price, quantity: i.quantity, subtotal: i.subtotal })),
+        promotionId: appliedPromo?.id,
+        items: cart.items.map(i => ({ productId: i.productId, price: i.price, costPrice: i.costPrice, quantity: i.quantity, subtotal: i.subtotal })),
       });
       setOrderId(order.id);
-      cart.clearCart(user.id);
+      cart.clearCart();
       setAppliedPromo(null);
       setPaystackReference(null);
       setIsPaymentCompleted(false);
       addToast('Order placed successfully!', 'success');
       setStep('SUCCESS');
-    } catch (err) {
-      console.error(err);
-      const msg = err instanceof Error ? err.message : 'Failed to place order. Please try again.';
+    } catch (err: unknown) {
+      console.error('Checkout Error Full Details:', JSON.stringify(err, null, 2));
+      const error = err as Record<string, unknown>;
+      const msg = (error?.message as string) || 'Failed to place order. Please try again.';
       addToast(msg, 'error');
     } finally {
       setIsProcessing(false);
     }
+  }, [user, useCustomAddress, selectedDeliveryPoint, customAddress, finalTotal, deliveryFee, paymentMethod, paystackReference, appliedPromo, cart, addToast]);
+
+  // Effect to auto-place order after Paystack success
+  React.useEffect(() => {
+    if (isPaymentCompleted && paystackReference && step === 'SUMMARY') {
+      handlePlaceOrder();
+    }
+  }, [isPaymentCompleted, paystackReference, step, handlePlaceOrder]);
+
+  React.useEffect(() => {
+    if (isOpen && step === 'DELIVERY') {
+      getDeliveryPoints().then(setDeliveryPoints).catch(console.error);
+    }
+  }, [isOpen, step]);
+
+  React.useEffect(() => {
+    if (step === 'SUCCESS') {
+      // Big celebration on success
+      confetti({
+        particleCount: 150,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ['#4F46E5', '#10B981', '#F59E0B']
+      });
+
+      const timer = setTimeout(() => {
+        setStep('CART');
+        onClose();
+      }, 15000);
+      return () => clearTimeout(timer);
+    }
+  }, [step, onClose]);
+
+  const handleStartCheckout = () => {
+    if (!user) {
+      onClose();
+      const returnUrl = window.location.pathname !== '/login' ? window.location.pathname : '/';
+      router.push(`/login?next=${encodeURIComponent(returnUrl)}`);
+      return;
+    }
+    setStep('DELIVERY');
   };
+
+
 
   const copyToClipboard = () => {
     if (!orderId) return;
     const shortId = orderId.slice(-8).toUpperCase();
     navigator.clipboard.writeText(shortId);
     setCopied(true);
+    
+    // Add a small celebration on copy
+    confetti({
+      particleCount: 30,
+      spread: 40,
+      origin: { y: 0.7 },
+      colors: ['#4F46E5', '#10B981']
+    });
+
+    addToast('Reference ID copied!', 'success');
     setTimeout(() => setCopied(false), 2000);
   };
 
   const canProceedFromDelivery = useCustomAddress ? customAddress.trim().length > 3 : !!selectedDeliveryPoint;
+  const canApplyPromo = promoCodeInput.trim().length > 3;
 
   const renderHeader = () => {
     const titles: Record<CheckoutStep, { icon: LucideIcon; text: string }> = {
@@ -204,13 +234,12 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
       DELIVERY: { icon: MapPin, text: 'Delivery' },
       PROMO: { icon: Tag, text: 'Promotions' },
       PAYMENT: { icon: CreditCard, text: 'Payment' },
-      SUMMARY: { icon: Package, text: 'Review' },
+      SUMMARY: { icon: Package, text: 'Review & Pay' },
       SUCCESS: { icon: CheckCircle2, text: 'Success' },
     };
     const ActiveIcon = titles[step].icon;
 
     return (
-      /* Cart Header */
       <div className="flex items-center justify-between p-5 border-b border-border shrink-0 bg-card/50 backdrop-blur-md sticky top-0 z-20">
         <div className="flex items-center gap-3">
           {step !== 'CART' && step !== 'SUCCESS' && (
@@ -218,8 +247,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
               onClick={() => {
                 if (step === 'DELIVERY') setStep('CART');
                 if (step === 'PROMO') setStep('DELIVERY');
-                if (step === 'PAYMENT') setStep('PROMO');
-                if (step === 'SUMMARY') setStep('PAYMENT');
+                if (step === 'SUMMARY') setStep('PROMO');
               }}
               className="p-2 -ml-2 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground transition-all active:scale-90"
             >
@@ -251,19 +279,17 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
           initializeRef={paystackInitializeRef}
         />
 
-        {/* STEPPER PROGRESS (only during checkout) */}
         {step !== 'CART' && step !== 'SUCCESS' && (
           <div className="px-6 py-3 bg-card/30 border-b border-border flex justify-between gap-2 overflow-hidden shrink-0">
-            {['DELIVERY', 'PROMO', 'PAYMENT', 'SUMMARY'].map((s, idx) => {
+            {['DELIVERY', 'PROMO', 'SUMMARY'].map((s, idx) => {
               const isActive = step === s;
               const isPast = (step === 'PROMO' && s === 'DELIVERY') || 
-                             (step === 'PAYMENT' && (s === 'DELIVERY' || s === 'PROMO')) || 
-                             (step === 'SUMMARY' && (s === 'DELIVERY' || s === 'PROMO' || s === 'PAYMENT'));
+                             (step === 'SUMMARY' && (s === 'DELIVERY' || s === 'PROMO'));
               return (
                 <div key={s} className="flex-1 flex flex-col gap-1.5">
                    <div className={`h-1.5 rounded-full transition-all duration-500 ${isActive ? 'bg-primary w-full' : isPast ? 'bg-success w-full' : 'bg-muted w-2'}`} />
                    <span className={`text-[9px] font-bold uppercase tracking-widest ${isActive ? 'text-primary' : isPast ? 'text-success' : 'text-muted-foreground/50'}`}>
-                      {idx + 1}. {s}
+                      {idx + 1}. {s === 'SUMMARY' ? 'REVIEW' : s}
                    </span>
                 </div>
               );
@@ -271,10 +297,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
           </div>
         )}
 
-        {/* CONTENT AREA */}
         <div className="flex-1 overflow-y-auto overflow-x-hidden relative">
           
-          {/* 1. CART PAGE */}
           {step === 'CART' && (
             <div className="p-6 space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
               {cart.items.length === 0 ? (
@@ -287,59 +311,45 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                   <button onClick={onClose} className="px-4 py-3 rounded-2xl bg-primary text-white font-bold shadow-lg shadow-primary/20 hover:scale-[1.05] transition-all active:scale-95">Explore Products</button>
                 </div>
               ) : (
-                <>
-                  <div className="space-y-3">
-                    {cart.items.map(item => (
-                      <div key={item.productId} className="flex gap-4 p-4 rounded-2xl bg-card border border-border/50 hover:border-primary/20 transition-all group">
-                        <div className="h-15 w-15 rounded-2xl bg-muted flex items-center justify-center text-muted-foreground font-bold text-2xl shrink-0 uppercase shadow-inner overflow-hidden relative">
-                          {item.image_url ? (
-                            <Image 
-                              src={item.image_url} 
-                              alt={item.productName} 
-                              fill
-                              className="object-cover"
-                            />
-                          ) : (
-                            item.productName.charAt(0)
-                          )}
-                          <div className="absolute inset-0 bg-linear-to-br from-primary/5 to-transparent" />
+                <div className="space-y-3">
+                  {cart.items.map(item => (
+                    <div key={item.productId} className="flex gap-4 p-4 rounded-2xl bg-card border border-border/50 hover:border-primary/20 transition-all group">
+                      <div className="h-15 w-15 rounded-2xl bg-muted flex items-center justify-center text-muted-foreground font-bold text-2xl shrink-0 uppercase shadow-inner overflow-hidden relative">
+                        {item.image_url ? (
+                          <Image src={item.image_url} alt={item.productName} fill className="object-cover" />
+                        ) : (
+                          item.productName.charAt(0)
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
+                        <div className="flex justify-between items-start gap-2">
+                           <p className="font-bold text-foreground text-base tracking-tight truncate leading-tight">{item.productName}</p>
+                           <button onClick={() => cart.removeItem(item.productId)} className="p-1 text-muted-foreground/30 hover:text-destructive transition-colors"><X className="h-4 w-4"/></button>
                         </div>
-                        <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
-                          <div className="flex justify-between items-start gap-2">
-                             <p className="font-bold text-foreground text-base tracking-tight truncate leading-tight">{item.productName}</p>
-                             <button onClick={() => cart.removeItem(item.productId, user?.id)} className="p-1 text-muted-foreground/30 hover:text-destructive transition-colors"><X className="h-4 w-4"/></button>
+                        <div className="flex justify-between items-end">
+                          <div className="flex items-center rounded-xl border-2 border-border bg-background p-0.5">
+                            <button className="h-7 w-7 flex items-center justify-center hover:bg-muted rounded-lg transition-colors" onClick={() => item.quantity > 1 ? cart.updateQuantity(item.productId, item.quantity - 1) : cart.removeItem(item.productId)}><Minus className="h-3 w-3"/></button>
+                            <span className="w-8 text-center text-sm font-bold">{item.quantity}</span>
+                            <button className="h-7 w-7 flex items-center justify-center hover:bg-muted rounded-lg transition-colors" onClick={() => cart.updateQuantity(item.productId, item.quantity + 1)}><Plus className="h-3 w-3"/></button>
                           </div>
-                          <div className="flex justify-between items-end">
-                            <div className="flex items-center rounded-xl border-2 border-border bg-background p-0.5">
-                              <button className="h-7 w-7 flex items-center justify-center hover:bg-muted rounded-lg transition-colors" onClick={() => item.quantity > 1 ? cart.updateQuantity(item.productId, item.quantity - 1, user?.id) : cart.removeItem(item.productId, user?.id)}><Minus className="h-3 w-3"/></button>
-                              <span className="w-8 text-center text-sm font-bold">{item.quantity}</span>
-                             <button className="h-7 w-7 flex items-center justify-center hover:bg-muted rounded-lg transition-colors" onClick={() => cart.updateQuantity(item.productId, item.quantity + 1, user?.id)}><Plus className="h-3 w-3"/></button>
-                            </div>
-                            <p className="font-bold text-primary text-base">{currencySymbol}{item.subtotal.toFixed(2)}</p>
-                          </div>
+                          <p className="font-bold text-primary text-base">{currencySymbol}{item.subtotal.toFixed(2)}</p>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                </>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           )}
 
-          {/* 2. DELIVERY PAGE */}
           {step === 'DELIVERY' && (
             <div className="p-6 space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
                <div className="space-y-6">
-                 <div className="relative group">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                    <input type="text" placeholder="Search saved locations..." className="w-full h-14 pl-12 pr-4 rounded-2xl border-2 border-border bg-card focus:border-primary outline-none transition-all font-medium text-sm shadow-sm" />
-                 </div>
-                 
                  <div className="grid grid-cols-1 gap-3">
-                    <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-[0.2em] px-2">Saved Distribution Centers</p>
+                    <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-[0.2em] px-2">{storeName} Centers</p>
                     {deliveryPoints.map(dp => (
-                      <button key={dp.id} onClick={() => { setSelectedDeliveryPoint(dp.id); setUseCustomAddress(false); }} className={`flex items-start gap-4 p-3 rounded-2xl border-2 text-left transition-all ${selectedDeliveryPoint === dp.id && !useCustomAddress ? 'border-primary bg-primary/5 ring-1 ring-primary/20 shadow-lg' : 'border-border bg-card hover:border-primary/30 shadow-sm'}`}>
-                         <div className={`h-10 w-10 rounded-xl flex items-center justify-center transition-colors ${selectedDeliveryPoint === dp.id && !useCustomAddress ? 'bg-primary text-white' : 'bg-muted text-muted-foreground'}`}>
+                      <button key={dp.id} onClick={() => { setSelectedDeliveryPoint(dp.id); setUseCustomAddress(false); }} className={`flex items-start gap-4 p-3 rounded-2xl border-2 text-left transition-all ${selectedDeliveryPoint === dp.id && !useCustomAddress ? 'border-primary bg-primary/5 shadow-lg' : 'border-border bg-card hover:border-primary/30'}`}>
+                         <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${selectedDeliveryPoint === dp.id && !useCustomAddress ? 'bg-primary text-white' : 'bg-muted text-muted-foreground'}`}>
                             <MapPin className="h-5 w-5" />
                          </div>
                          <div className="flex-1">
@@ -348,20 +358,23 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                          </div>
                       </button>
                     ))}
-
                     <div className="pt-2">
-                       <button onClick={() => setUseCustomAddress(true)} className={`w-full flex items-center gap-4 p-5 rounded-2xl border-2 text-left transition-all ${useCustomAddress ? 'border-primary bg-primary/5 ring-1 ring-primary/20' : 'border-border bg-card hover:border-primary/30 opacity-70'}`}>
+                       <button onClick={() => setUseCustomAddress(true)} className={`w-full flex items-center gap-4 p-5 rounded-2xl border-2 text-left transition-all ${useCustomAddress ? 'border-primary bg-primary/5' : 'border-border bg-card'}`}>
                           <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${useCustomAddress ? 'bg-primary text-white' : 'bg-muted text-muted-foreground'}`}>
                              <ArrowRight className="h-5 w-5" />
                           </div>
                           <div>
                              <p className="font-bold text-sm">Enter Custom GPS Address</p>
-                             <p className="text-xs text-muted-foreground font-medium mt-1">For direct doorstep delivery</p>
+                             <p className="text-xs text-muted-foreground font-medium mt-1">Direct doorstep delivery</p>
                           </div>
                        </button>
                        {useCustomAddress && (
-                         <div className="mt-4 animate-in zoom-in-95 duration-200">
-                           <textarea value={customAddress} onChange={e => setCustomAddress(e.target.value)} className="w-full rounded-2xl border-2 border-primary/50 bg-card p-5 text-sm font-bold text-foreground outline-none focus:border-primary transition-all resize-none shadow-xl" rows={4} placeholder="Floor, building, street, and landmark..." />
+                         <div className="mt-4 space-y-3">
+                           <div className="flex items-center gap-2 p-3 bg-warning/5 border-warning/80 rounded-xl text-warning text-[10px] font-bold uppercase tracking-widest">
+                             <AlertCircle className="h-4 w-4" />
+                             Note: Custom delivery attracts a {currencySymbol}15.00 non-refundable fee.
+                           </div>
+                           <textarea value={customAddress} onChange={e => setCustomAddress(e.target.value)} className="w-full rounded-2xl border-2 border-primary/50 bg-card p-5 text-sm font-bold text-foreground outline-none focus:border-primary transition-all resize-none shadow-xl" rows={4} placeholder="Floor, building, street, landmark..." />
                          </div>
                        )}
                     </div>
@@ -370,247 +383,178 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
             </div>
           )}
 
-          {/* 3. PROMO PAGE */}
           {step === 'PROMO' && (
             <div className="p-6 space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
-                  {/* Promo Section */}
-                  <div className="space-y-4">
-                     <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] px-2">Promotion</span>
-                     <div className="bg-card rounded-2xl p-4 border-2 border-border shadow-sm flex flex-col gap-3">
-                       {!appliedPromo ? (
-                         <div className="flex gap-2">
-                           <input type="text" value={promoCodeInput} onChange={e => {setPromoCodeInput(e.target.value.toUpperCase()); setPromoError('');}} placeholder="Enter promo code..." className="flex-1 rounded-xl border-2 border-border bg-background px-4 text-sm font-bold focus:border-primary outline-none transition-colors uppercase h-12" />
-                           <button onClick={handleApplyPromo} disabled={!promoCodeInput || isApplyingPromo} className="px-5 rounded-xl bg-primary text-white font-bold text-sm hover:opacity-90 disabled:opacity-50 transition-all flex items-center justify-center min-w-25">
-                             {isApplyingPromo ? <Loader2 className="h-4 w-4 animate-spin"/> : 'APPLY'}
-                           </button>
-                         </div>
-                       ) : (
-                         <div className="flex items-center justify-between p-3 bg-success/10 border-2 border-success/20 rounded-xl">
-                           <div className="flex items-center gap-3">
-                             <CheckCircle2 className="h-6 w-6 text-success" />
-                             <div>
-                               <p className="text-sm font-bold text-success leading-tight">{appliedPromo.name}</p>
-                               <p className="text-[10px] uppercase font-bold text-success/80 tracking-widest mt-0.5">Active Promotion</p>
-                             </div>
-                           </div>
-                           <button onClick={handleRemovePromo} className="p-2 bg-success/10 rounded-lg text-success/70 hover:bg-destructive/10 hover:text-destructive transition-colors"><X className="h-5 w-5"/></button>
-                         </div>
-                       )}
-                       {promoError && <p className="text-xs font-bold text-destructive px-1 flex items-center gap-1"><AlertCircle className="h-3 w-3"/>{promoError}</p>}
-                     </div>
-                  </div>
-            </div>
-          )}
-
-          {/* 4. PAYMENT PAGE */}
-          {step === 'PAYMENT' && (
-            <div className="p-6 space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
                <div className="space-y-4">
-                  <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-[0.2em] px-2 mb-4">Choose Method</p>
-                  {(['PAYSTACK', 'PAY_ON_DELIVERY'] as const).map(m => (
-                    <button key={m} onClick={() => setPaymentMethod(m)} className={`flex items-center gap-5 p-3 rounded-2xl border-2 transition-all relative overflow-hidden group ${paymentMethod === m ? 'border-primary bg-primary/5 ring-1 ring-primary/30 shadow-xl' : 'border-border bg-card hover:border-primary/40 shadow-sm'}`}>
-                       <div className={`p-4 rounded-2xl transition-all ${paymentMethod === m ? 'bg-primary text-white scale-110' : 'bg-muted text-muted-foreground group-hover:text-primary'}`}>
-                          {m === 'PAYSTACK' && <CreditCard className="h-6 w-6"/>}
-                          {m === 'PAY_ON_DELIVERY' && <Package className="h-6 w-6"/>}
-                       </div>
-                       <div className="flex-1">
-                          <p className="font-bold text-base text-foreground uppercase tracking-tight">{m === 'PAYSTACK' ? 'Paystack' : m.replace(/_/g, ' ')}</p>
-                          <p className="text-[10px] text-muted-foreground font-bold uppercase mt-1 tracking-widest">{m === 'PAYSTACK' ? 'Card, Mobile Money, Apple Pay' : 'Safe and Secure'}</p>
-                       </div>
-                       {paymentMethod === m && (
-                          <div className="h-6 w-6 rounded-full bg-primary flex items-center justify-center animate-in zoom-in duration-300 shadow-lg shadow-primary/40">
-                             <ArrowRight className="h-3 w-3 text-white" />
-                          </div>
-                       )}
-                    </button>
-                  ))}
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] px-2">Promotion</span>
+                  <div className="bg-card rounded-2xl p-4 border-2 border-border shadow-sm flex flex-col gap-3">
+                    {!appliedPromo ? (
+                      <div className="flex gap-2">
+                        <input type="text" value={promoCodeInput} onChange={e => setPromoCodeInput(e.target.value.toUpperCase())} placeholder="CODE..." className="flex-1 rounded-xl border-2 border-border bg-background px-4 text-sm font-bold h-12" />
+                        <button 
+                          onClick={handleApplyPromo} 
+                          disabled={!canApplyPromo || isApplyingPromo} 
+                          className="px-5 rounded-xl bg-primary text-white font-bold text-sm disabled:bg-primary/50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center min-w-[80px]"
+                        >
+                          {isApplyingPromo ? <Loader2 className="h-4 w-4 animate-spin" /> : 'APPLY'}
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between p-3 bg-success/10 border-2 border-success/20 rounded-xl">
+                        <div className="flex items-center gap-3">
+                          <CheckCircle2 className="h-6 w-6 text-success" />
+                          <p className="text-sm font-bold text-success">{appliedPromo.name}</p>
+                        </div>
+                        <button onClick={handleRemovePromo} className="text-success hover:text-destructive transition-colors"><X className="h-5 w-5"/></button>
+                      </div>
+                    )}
+                    {promoError && <p className="text-xs font-bold text-destructive px-1">{promoError}</p>}
+                  </div>
                </div>
-               {paymentMethod === 'PAYSTACK' && (
-                 <div className="bg-linear-to-br from-primary/80 to-primary rounded-3xl p-6 text-white shadow-2xl relative overflow-hidden animate-in slide-in-from-bottom-4 duration-500">
-                    <div className="absolute -right-5 -top-5 h-32 w-32 rounded-full bg-white/10 blur-3xl" />
-                    <div className="flex justify-between items-start mb-6">
-                       <CreditCard className="h-8 w-8 text-white/50" />
-                       <span className="font-bold text-sm tracking-widest italic opacity-60">SECURE PAYMENT</span>
-                    </div>
-                    <div className="space-y-4">
-                       <p className="text-lg font-bold leading-tight">Pay via Paystack</p>
-                       <p className="text-xs opacity-80 leading-relaxed">Pay with your Credit/Debit Card, Mobile Money, or Apple Pay through our secure payment gateway.</p>
-                    </div>
-                 </div>
-               )}
             </div>
           )}
 
-          {/* 5. SUMMARY PAGE */}
           {step === 'SUMMARY' && (
             <div className="p-6 space-y-8 animate-in fade-in slide-in-from-right-4 duration-300 pb-24">
-               <div className="space-y-4">
-                 {/* Destination */}
+               <div className="space-y-6">
+                 <div className="space-y-4">
                   <div className="bg-card rounded-2xl p-5 border-2 border-border shadow-sm">
                      <div className="flex justify-between items-start mb-4">
                         <span className="text-[10px] font-bold text-primary uppercase tracking-[0.2em]">Ship To</span>
-                        <button onClick={() => setStep('DELIVERY')} className="text-[10px] font-bold text-muted-foreground hover:text-primary transition-colors underline uppercase tracking-tighter">Edit</button>
+                        <button onClick={() => setStep('DELIVERY')} className="text-[10px] font-bold text-muted-foreground underline">Edit</button>
                      </div>
-                     <div className="flex gap-4">
-                        <MapPin className="h-5 w-5 text-muted-foreground shrink-0 mt-1" />
-                        <div>
-                          <p className="font-bold text-base text-foreground leading-tight">
-                            {useCustomAddress ? 'Custom Address' : (deliveryPoints.find(d => d.id === selectedDeliveryPoint)?.name || 'Direct Delivery')}
-                          </p>
-                          <p className="text-xs text-muted-foreground font-medium mt-1 leading-relaxed">
-                             {useCustomAddress ? customAddress : (deliveryPoints.find(d => d.id === selectedDeliveryPoint)?.address)}
-                          </p>
-                        </div>
-                     </div>
+                     <p className="font-bold text-sm text-foreground">{useCustomAddress ? 'Custom Address' : (deliveryPoints.find(d => d.id === selectedDeliveryPoint)?.name)}</p>
+                     <p className="text-[11px] text-muted-foreground mt-1">{useCustomAddress ? customAddress : (deliveryPoints.find(d => d.id === selectedDeliveryPoint)?.address)}</p>
                   </div>
 
-                  {/* Payment */}
-                  <div className="bg-card rounded-2xl p-5 border-2 border-border shadow-sm">
-                     <div className="flex justify-between items-start mb-4">
-                        <span className="text-[10px] font-bold text-primary uppercase tracking-[0.2em]">Payment</span>
-                        <button onClick={() => setStep('PAYMENT')} className="text-[10px] font-bold text-muted-foreground hover:text-primary transition-colors underline uppercase tracking-tighter">Edit</button>
-                     </div>
-                     <div className="flex gap-4 items-center">
-                        <CreditCard className="h-5 w-5 text-muted-foreground shrink-0" />
-                        <div>
-                          <p className="font-bold text-base text-foreground leading-tight uppercase tracking-tight">{paymentMethod.replace(/_/g, ' ')}</p>
-                          <p className="text-xs text-muted-foreground font-medium mt-0.5 tracking-tight">{isPaymentCompleted ? 'Payment Completed Securely' : 'Standard Processing Applied'}</p>
+                  <div className="bg-muted/10 rounded-2xl p-4 border-2 border-dashed border-border">
+                     <div className="space-y-2 mb-4">
+                      {cart.items.map(item => (
+                        <div key={item.productId} className="flex justify-between text-xs font-bold">
+                          <span>{item.productName} ×{item.quantity}</span>
+                          <span>{currencySymbol}{item.subtotal.toFixed(2)}</span>
                         </div>
+                      ))}
+                     </div>
+                     <div className="pt-2 border-t border-border/40 space-y-1.5">
+                        <div className="flex justify-between text-[11px] font-bold text-muted-foreground"><span>Subtotal</span><span>{currencySymbol}{subtotal.toFixed(2)}</span></div>
+                        {promoDiscount > 0 && <div className="flex justify-between text-[11px] font-bold text-success"><span>Discount</span><span>-{currencySymbol}{promoDiscount.toFixed(2)}</span></div>}
+                        {deliveryFee > 0 && <div className="flex justify-between text-[11px] font-bold text-foreground"><span>Delivery Fee</span><span>{currencySymbol}{deliveryFee.toFixed(2)}</span></div>}
+                        <div className="flex justify-between items-center pt-2 text-sm font-black text-primary"><span>TOTAL</span><span>{currencySymbol}{finalTotal.toFixed(2)}</span></div>
                      </div>
                   </div>
+                 </div>
 
-                  {/* Items List */}
-                  <div className="space-y-4">
-                     <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] px-2">Order Content</span>
-                     <div className="bg-muted/20 rounded-3xl p-2 border-2 border-dashed border-border">
-                        {cart.items.map(item => (
-                          <div key={item.productId} className="flex justify-between items-center p-3 hover:bg-card/50 rounded-2xl transition-colors">
-                            <span className="font-bold text-foreground truncate max-w-60 text-sm">{item.productName} <span className="text-muted-foreground text-xs ml-1">× {item.quantity}</span></span>
-                            <span className="font-bold text-foreground text-sm">{useSettingsStore.getState().currencySymbol}{item.subtotal.toFixed(2)}</span>
-                          </div>
-                        ))}
-                        {appliedPromo && (
-                           <div className="flex justify-between items-center p-3 rounded-2xl bg-success/10 mt-2 border border-success/20">
-                             <span className="font-bold text-success text-sm truncate max-w-60">Deduction: {appliedPromo.name}</span>
-                             <span className="font-bold text-success text-sm">-{useSettingsStore.getState().currencySymbol}{promoDiscount.toFixed(2)}</span>
+                 <div className="space-y-4">
+                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Payment</span>
+                    <div className="grid grid-cols-1 gap-3">
+                      {(['PAYSTACK', 'PAY_ON_DELIVERY'] as const).map(m => (
+                        <button key={m} onClick={() => setPaymentMethod(m)} className={`flex items-center gap-4 p-3 rounded-2xl border-2 cursor-pointer ${paymentMethod === m ? 'border-primary bg-primary/5 shadow-md' : 'border-border bg-card'}`}>
+                           <div className={`p-3 rounded-xl ${paymentMethod === m ? 'bg-primary text-white' : 'bg-muted text-muted-foreground'}`}>
+                              {m === 'PAYSTACK' ? <CreditCard className="h-5 w-5"/> : <Package className="h-5 w-5"/>}
                            </div>
-                        )}
-                        <div className="flex justify-between items-center p-3 mt-2 border-t-2 border-border/50">
-                           <span className="font-black text-foreground tracking-tight text-base">FINAL TOTAL</span>
-                           <span className="font-black text-primary text-lg">{useSettingsStore.getState().currencySymbol}{finalTotal.toFixed(2)}</span>
-                        </div>
-                     </div>
-                  </div>
+                           <p className="flex-1 text-left font-bold text-xs">{m === 'PAYSTACK' ? 'Direct Payment (Paystack)' : 'Pay On Delivery'}</p>
+                           <div className={`h-5 w-5 rounded-full border-2 flex items-center justify-center ${paymentMethod === m ? 'border-primary bg-primary' : 'border-border'}`}>
+                              {paymentMethod === m && <CheckCircle2 className="h-3 w-3 text-white" />}
+                           </div>
+                        </button>
+                      ))}
+                    </div>
+                 </div>
                </div>
             </div>
           )}
 
-          {/* 6. SUCCESS PAGE */}
           {step === 'SUCCESS' && (
-            <div className="min-h-full flex flex-col items-center justify-center p-8 animate-in zoom-in-95 duration-700">
-               <div className="relative mb-5">
-                  <div className="h-30 w-30 rounded-[3.5rem] bg-success/10 border-4 border-success/20 flex items-center justify-center animate-bounce shadow-special-success">
-                    <CheckCircle2 className="h-16 w-16 text-success"/>
-                  </div>
-                  <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full bg-success text-white font-bold text-[10px] uppercase shadow-lg ring-4 ring-background">Verified</div>
-               </div>
-               
-               <div className="text-center space-y-4 mb-10 px-6">
-                  <h2 className="text-4xl font-bold text-foreground tracking-tighter leading-none">Order Secure!</h2>
-                  <p className="text-muted-foreground text-sm font-medium leading-relaxed">Prepare for arrival. We&apos;ve sent the tracking details to your primary email address.</p>
-               </div>
+            <div className="min-h-full flex flex-col items-center justify-center p-8 space-y-8 text-center bg-linear-to-b from-success/5 to-background">
+              <div className="relative group">
+                <div className="absolute -inset-4 bg-success/20 rounded-full blur-2xl group-hover:bg-success/30 transition-all duration-500 animate-pulse" />
+                <div className="relative h-28 w-28 rounded-full bg-success text-white flex items-center justify-center shadow-2xl shadow-success/40 animate-in zoom-in-50 duration-500">
+                  <CheckCircle2 className="h-14 w-14 animate-in slide-in-from-bottom-2 duration-700" />
+                </div>
+              </div>
 
-               <div className="w-full bg-card rounded-3xl p-4 border-2 border-border/50 group cursor-pointer active:scale-[0.98] transition-all relative overflow-hidden shadow-2xl hover:border-primary/50" onClick={copyToClipboard}>
-                 <div className="flex flex-col items-center gap-2 z-10 relative">
-                    <span className="text-[10px] font-bold text-muted-foreground/50 uppercase tracking-[0.4em]">Tracking Reference</span>
-                    <div className="flex items-center gap-4 py-4">
-                      <span className="text-3xl font-bold text-foreground tracking-[0.3em] font-mono">{orderId?.slice(-8).toUpperCase()}</span>
-                      <Copy className={`h-6 w-6 transition-all duration-300 ${copied ? 'text-success scale-125' : 'text-primary'}`} />
-                    </div>
-                    <span className="text-[10px] font-bold text-primary px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 uppercase tracking-widest">{copied ? 'Identity Copied' : 'Tap to Copy reference'}</span>
-                 </div>
-                 {copied && <div className="absolute inset-0 bg-success/5 animate-in fade-in duration-300" />}
-               </div>
+              <div className="space-y-3 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
+                <h2 className="text-4xl font-black text-foreground tracking-tight">Order Placed!</h2>
+                <p className="text-muted-foreground font-medium max-w-[240px] mx-auto text-sm leading-relaxed">
+                  Your order is being prepared. We&apos;ve sent the details to your email.
+                </p>
+              </div>
+
+              <div 
+                onClick={copyToClipboard}
+                className={`w-full max-w-sm cursor-pointer relative group transition-all duration-500 animate-in fade-in slide-in-from-bottom-4 delay-400 ${
+                  copied ? 'scale-95' : 'hover:scale-102 hover:-translate-y-1'
+                }`}
+              >
+                <div className="absolute -inset-1 bg-linear-to-r from-primary to-indigo-600 rounded-3xl blur opacity-25 group-hover:opacity-40 transition duration-1000 group-hover:duration-200" />
+                <div className="relative bg-card border-2 border-border/50 rounded-2xl p-6 flex flex-col items-center space-y-4 shadow-xl">
+                   <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-muted/50 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                      <Package className="h-3 w-3" />
+                      Order Reference
+                   </div>
+                   
+                   <div className="flex flex-col items-center">
+                      <span className="text-3xl font-black text-primary tracking-[0.2em] font-mono">
+                        {orderId?.slice(-8).toUpperCase()}
+                      </span>
+                      <div className="mt-4 flex items-center gap-2 text-sm font-bold text-muted-foreground transition-colors group-hover:text-primary">
+                        {copied ? (
+                          <>
+                            <Check className="h-4 w-4 text-success" />
+                            <span className="text-success">Copied to Clipboard!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="h-4 w-4" />
+                            <span>Click to Copy ID</span>
+                          </>
+                        )}
+                      </div>
+                   </div>
+                </div>
+              </div>
             </div>
           )}
         </div>
 
-        {/* BOTTOM ACTION BAR */}
         {step !== 'SUCCESS' && (
-          <div className="p-4 border-t border-border bg-card/80 backdrop-blur-xl shrink-0 shadow-[0_-12px_40px_-16px_rgba(0,0,0,0.15)] z-20">
+          <div className="p-4 border-t border-border bg-card shrink-0">
             {step === 'CART' && cart.items.length > 0 && (
-              <div className="space-y-5">
-                 <div className="flex justify-between items-end">
-                    <div className="space-y-1">
-                       <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Cart Subtotal</p>
-                       <p className="text-[10px] font-bold text-muted-foreground/60 italic leading-none truncate w-32">{cart.getItemCount()} Premium items selected</p>
-                    </div>
-                    <p className="text-3xl font-bold text-foreground tracking-tighter">{useSettingsStore.getState().currencySymbol}{cart.getTotal().toFixed(2)}</p>
-                 </div>
-                 <button onClick={handleStartCheckout} className="w-full h-15 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-base flex items-center justify-center gap-4 transition-all shadow-xl shadow-indigo-500/30 active:scale-95 group">
-                    PROCEED TO CHECKOUT <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
-                 </button>
-              </div>
+              <button onClick={handleStartCheckout} className="w-full h-14 rounded-2xl bg-indigo-600 text-white font-bold cursor-pointer">CHECKOUT · {currencySymbol}{cart.getTotal().toFixed(2)}</button>
             )}
-
             {step === 'DELIVERY' && (
-               <button 
-                  onClick={() => setStep('PROMO')} 
-                  disabled={!canProceedFromDelivery}
-                  className="w-full h-15 rounded-2xl bg-primary text-white font-bold text-base flex items-center justify-center gap-4 transition-all shadow-xl shadow-primary/25 disabled:opacity-40 disabled:grayscale disabled:scale-100"
-               >
-                  NEXT: PROMOTIONS <ArrowRight className="h-5 w-5" />
-               </button>
+               <button onClick={() => setStep('PROMO')} disabled={!canProceedFromDelivery} className="w-full h-14 rounded-2xl bg-primary text-white font-bold opacity-100 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer">PROCEED TO PROMO</button>
             )}
-
             {step === 'PROMO' && (
-               <button 
-                  onClick={() => setStep('PAYMENT')} 
-                  className="w-full h-15 rounded-2xl bg-primary text-white font-bold text-base flex items-center justify-center gap-4 transition-all shadow-xl shadow-primary/25"
-               >
-                  NEXT: PAYMENT METHOD <ArrowRight className="h-5 w-5" />
-               </button>
+               <button onClick={() => setStep('SUMMARY')} className="w-full h-14 rounded-2xl bg-primary text-white font-bold cursor-pointer">REVIEW & PAY</button>
             )}
-
-            {step === 'PAYMENT' && (
-               <button 
-                  onClick={() => paymentMethod === 'PAYSTACK' ? handlePaystackPayment() : setStep('SUMMARY')} 
-                  className="w-full h-15 rounded-2xl bg-primary text-white font-bold text-base flex items-center justify-center gap-4 transition-all shadow-xl shadow-primary/25"
-               >
-                  {paymentMethod === 'PAYSTACK' ? 'MAKE PAYMENT' : 'REVIEW FINAL ORDER'} <ArrowRight className="h-5 w-5" />
-               </button>
-            )}
-
             {step === 'SUMMARY' && (
-               <button 
-                  onClick={handlePlaceOrder} 
-                  disabled={isProcessing}
-                  className="w-full h-15 rounded-2xl bg-success hover:bg-success/90 text-white font-bold text-base flex items-center justify-center gap-4 transition-all shadow-xl shadow-success/25 disabled:opacity-50"
-               >
-                  {isProcessing ? <Loader2 className="h-6 w-6 animate-spin" /> : <>FINALIZE & ORDER · {useSettingsStore.getState().currencySymbol}{finalTotal.toFixed(2)} <CheckCircle2 className="h-5 w-5" /></>}
+               <button onClick={() => paymentMethod === 'PAYSTACK' ? handlePaystackPayment() : handlePlaceOrder()} disabled={isProcessing} className="w-full h-14 rounded-2xl bg-primary text-white font-bold cursor-pointer">
+                 {isProcessing ? <Loader2 className="h-5 w-5 animate-spin mx-auto" /> : (paymentMethod === 'PAYSTACK' ? `PAY ${currencySymbol}${finalTotal.toFixed(2)} NOW` : 'PLACE ORDER')}
                </button>
             )}
           </div>
         )}
 
         {step === 'SUCCESS' && (
-           <div className="p-8 border-t border-border bg-card shrink-0 space-y-3">
-              <button 
-                onClick={() => { router.push('/orders'); setStep('CART'); onClose(); }} 
-                className="w-full h-15 rounded-2xl bg-foreground text-card font-bold shadow-2xl hover:opacity-90 transition-all text-sm uppercase tracking-widest flex items-center justify-center gap-2"
-              >
-                Go to My Journey <Package className="h-5 w-5" />
-              </button>
-              <button 
-                onClick={() => { setStep('CART'); onClose(); }} 
-                className="w-full h-15 rounded-2xl border-2 border-border font-bold text-muted-foreground hover:text-foreground hover:bg-muted transition-all text-sm uppercase tracking-widest"
-              >
-                Back to Market
-              </button>
-           </div>
+          <div className="p-8 border-t border-border bg-card shrink-0 gap-4 flex animate-in slide-in-from-bottom-8 duration-700 delay-600">
+            <button 
+              onClick={() => { setStep('CART'); onClose(); }}
+              className="flex-1 h-14 rounded-2xl border-2 border-border font-bold text-muted-foreground uppercase tracking-widest text-[10px] cursor-pointer hover:bg-muted transition-colors active:scale-95"
+            >
+              Back Home
+            </button>
+            <button 
+              onClick={() => { router.push('/orders'); onClose(); }}
+              className="flex-2 h-14 rounded-2xl bg-foreground text-background font-bold uppercase tracking-widest text-[10px] cursor-pointer shadow-xl shadow-foreground/10 hover:opacity-90 transition-all active:scale-95 flex items-center justify-center gap-2"
+            >
+              <Package className="h-4 w-4" />
+              View My Orders
+            </button>
+          </div>
         )}
       </div>
-
     </>
   );
 };

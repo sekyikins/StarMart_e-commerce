@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useAuth } from '@/lib/auth';
 import { useCartStore, useSettingsStore } from '@/lib/store';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
-import { ShoppingBag, User, Menu, X, Package } from 'lucide-react';
+import { ShoppingBag, User, Menu, X } from 'lucide-react';
 
 interface NavbarProps {
   onCartToggle: () => void;
@@ -26,8 +26,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 
   return (
-    <nav className="sticky top-0 z-40 w-full border-b-2 border-border/80 bg-background/90 backdrop-blur-xl shadow-2xl shadow-indigo-500/10">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <>
+      <nav className="sticky top-0 z-50 w-full border-b-2 border-border/80 bg-background/90 backdrop-blur-xl shadow-2xl shadow-indigo-500/10">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center gap-4">
 
           {/* Logo */}
@@ -65,13 +66,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
               {user ? (
                 <>
-                  <Link
-                    href="/orders"
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors rounded-lg hover:bg-muted"
-                  >
-                    <Package className="h-4 w-4" />
-                    Orders
-                  </Link>
+
                   <Link
                     href="/profile"
                     className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors rounded-lg hover:bg-muted"
@@ -134,22 +129,28 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
         )}
       </div>
+      </nav>
 
-      {/* Mobile Menu */}
+      {/* Mobile Menu Overlay */}
       {mobileMenuOpen && (
-        <div className="sm:hidden border-t border-border bg-card px-4 py-3 space-y-1">
-          <Link href="/products" onClick={() => setMobileMenuOpen(false)} className="block py-2.5 px-3 rounded-lg text-sm font-medium hover:bg-muted transition-colors">Products</Link>
-          {user ? (
-            <>
-              <Link href="/orders" onClick={() => setMobileMenuOpen(false)} className="block py-2.5 px-3 rounded-lg text-sm font-medium hover:bg-muted transition-colors">My Orders</Link>
-              <Link href="/profile" onClick={() => setMobileMenuOpen(false)} className="block py-2.5 px-3 rounded-lg text-sm font-medium hover:bg-muted transition-colors">Profile</Link>
-
-            </>
-          ) : (
-            <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="block py-2.5 px-3 rounded-lg text-sm font-medium hover:bg-muted transition-colors">Sign In</Link>
-          )}
+        <div className="sm:hidden">
+          <div 
+            className="fixed inset-0 z-40 bg-black/40 backdrop-blur-md transition-opacity"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+          <div 
+             className="fixed left-0 w-full z-40 border-b-2 border-border bg-background/95 backdrop-blur-xl shadow-2xl px-4 py-4 space-y-2 animate-in slide-in-from-top-2"
+             style={{ top: showSearch ? '116px' : '64px' }}
+          >
+            <Link href="/products" onClick={() => setMobileMenuOpen(false)} className="block py-3 px-4 rounded-xl text-base font-bold hover:bg-muted transition-colors">Products</Link>
+            {user ? (
+              <Link href="/profile" onClick={() => setMobileMenuOpen(false)} className="block py-3 px-4 rounded-xl text-base font-bold hover:bg-muted transition-colors">Profile</Link>
+            ) : (
+              <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="block py-3 px-4 rounded-xl text-base font-bold hover:bg-muted transition-colors">Sign In</Link>
+            )}
+          </div>
         </div>
       )}
-    </nav>
+    </>
   );
 };
