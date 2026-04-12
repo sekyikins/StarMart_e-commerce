@@ -86,6 +86,7 @@ export interface Order {
   promoName?: string; // From join
   isReturned?: boolean;
   createdAt: string;
+  completedAt?: string | null;
 }
 
 export interface StorefrontUser {

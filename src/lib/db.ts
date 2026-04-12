@@ -121,6 +121,7 @@ function toOrder(row: any): Order {
     promoName: row.promotions?.name,
     isReturned: row.is_returned,
     createdAt: row.created_at,
+    completedAt: row.completed_at ?? null,
     items: (row.transaction_items ?? []).map(toOrderItem)
   };
 }

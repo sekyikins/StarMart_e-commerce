@@ -62,8 +62,8 @@ export function RequestReturnModal({ order, isOpen, onClose, onSuccess }: Reques
       
       setReturnableItems(itemsList);
       setReturnQuantities(initQtys);
-    } catch (err: any) {
-      addToast(err.message || 'Not eligible for return', 'error');
+    } catch (err: unknown) {
+      addToast(err instanceof Error ? err.message : 'Not eligible for return', 'error');
       onClose();
     } finally {
       setIsChecking(false);
@@ -102,8 +102,8 @@ export function RequestReturnModal({ order, isOpen, onClose, onSuccess }: Reques
       addToast('Return request submitted successfully.', 'success');
       onSuccess();
       onClose();
-    } catch (err: any) {
-      addToast(err.message || 'Failed to submit request.', 'error');
+    } catch (err: unknown) {
+      addToast(err instanceof Error ? err.message : 'Failed to submit request.', 'error');
     } finally {
       setIsLoading(false);
     }
