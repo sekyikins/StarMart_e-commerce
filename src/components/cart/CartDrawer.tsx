@@ -133,8 +133,9 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
   };
 
   const handlePlaceOrder = React.useCallback(async () => {
-    if (!user) return;
+    if (!user || isProcessing) return;
     setIsProcessing(true);
+    setIsPaymentCompleted(false); 
     try {
       const order = await placeOrder({
         customerId: user.id,
@@ -162,7 +163,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
     } finally {
       setIsProcessing(false);
     }
-  }, [user, useCustomAddress, selectedDeliveryPoint, customAddress, finalTotal, deliveryFee, paymentMethod, paystackReference, appliedPromo, cart, addToast]);
+  }, [user, isProcessing, useCustomAddress, selectedDeliveryPoint, customAddress, finalTotal, deliveryFee, paymentMethod, paystackReference, appliedPromo, cart, addToast]);
 
   // Effect to auto-place order after Paystack success
   React.useEffect(() => {
@@ -194,6 +195,17 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
       return () => clearTimeout(timer);
     }
   }, [step, onClose]);
+
+  // Reset checkout step if items change while drawer is closed
+  const itemCount = cart.getItemCount();
+  const prevItemCount = React.useRef(itemCount);
+
+  React.useEffect(() => {
+    if (!isOpen && itemCount !== prevItemCount.current) {
+      setStep('CART');
+    }
+    prevItemCount.current = itemCount;
+  }, [isOpen, itemCount]);
 
   const handleStartCheckout = () => {
     if (!user) {

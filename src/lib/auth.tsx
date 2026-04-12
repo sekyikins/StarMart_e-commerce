@@ -70,7 +70,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const login = async (email: string, password: string): Promise<boolean> => {
     const dbUser = await getStorefrontUserByEmail(email);
-    if (!dbUser) return false;
+    if (!dbUser || !dbUser.password_hash) return false;
     const valid = await bcrypt.compare(password, dbUser.password_hash);
     if (!valid) return false;
     const u: StorefrontUser = {

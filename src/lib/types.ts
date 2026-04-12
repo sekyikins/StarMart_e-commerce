@@ -10,6 +10,22 @@ export interface UserRecord {
 
 export type AuthUser = Omit<UserRecord, 'passwordHash'>;
 
+export interface ProductImage {
+  id: string;
+  product_id: string;
+  image_url: string;
+  is_primary: boolean;
+  created_at?: string;
+}
+
+export interface ProductImage {
+  id: string;
+  product_id: string;
+  image_url: string;
+  is_primary: boolean;
+  created_at?: string;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -20,6 +36,7 @@ export interface Product {
   quantity: number;
   barcode: string;
   image_url?: string;
+  images?: ProductImage[];
   description?: string;
   is_returnable?: boolean;
 }
@@ -145,4 +162,6 @@ export interface Return {
   customerName?: string;
   initiatedByName?: string;
   processedByName?: string;
+  paymentMethod?: string;
+  paymentReference?: string;
 }

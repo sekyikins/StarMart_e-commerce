@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { Product, Order, OrderItem, StorefrontUser, StoreSettings, Review, Promotion, Return } from './types';
+import { Product, ProductImage, Order, OrderItem, StorefrontUser, StoreSettings, Review, Promotion, Return } from './types';
 import bcrypt from 'bcryptjs';
 export const generateReference = (method: string): string => {
   if (method === 'PAYSTACK') {
@@ -35,6 +35,11 @@ export async function getStoreSettings(): Promise<StoreSettings> {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function toProduct(row: any): Product {
+  if (!row) return {} as Product;
+  
+  const images = Array.isArray(row.product_images) ? row.product_images : [];
+  const primaryImg = images.find((img: ProductImage) => img.is_primary) || images[0];
+
   return {
     id: row.id,
     name: row.name,
@@ -45,8 +50,58 @@ function toProduct(row: any): Product {
     quantity: row.quantity,
     barcode: row.barcode,
     description: row.description ?? undefined,
-    image_url: row.product_images?.[0]?.image_url || row.image_url || undefined,
+    image_url: primaryImg?.image_url,
+    images: images,
     is_returnable: row.is_returnable ?? true,
+  };
+}
+
+function toReturn(row: {
+  id: string;
+  sale_id: string | null;
+  order_id: string | null;
+  customer_id: string | null;
+  initiated_by_staff_id: string | null;
+  processed_by_staff_id: string | null;
+  source: string;
+  reason: string;
+  status: string;
+  refund_amount: number | string | null;
+  rejection_reason: string | null;
+  requested_at: string;
+  processed_at: string | null;
+  completed_at: string | null;
+  items?: { id: string; return_id: string; product_id: string; products: { name: string } | null; quantity: number; unit_price: number | string; subtotal: number | string; }[];
+  return_items?: { id: string; return_id: string; product_id: string; products: { name: string } | null; quantity: number; unit_price: number | string; subtotal: number | string; }[];
+  order?: { payment_method_id: string | null; payment_reference: string | null } | null;
+  sale?: { payment_method_id: string | null; payment_reference: string | null } | null;
+}): Return {
+  return {
+    id: row.id,
+    saleId: row.sale_id,
+    orderId: row.order_id,
+    customerId: row.customer_id,
+    initiatedByStaffId: row.initiated_by_staff_id,
+    processedByStaffId: row.processed_by_staff_id,
+    source: row.source as Return['source'],
+    reason: row.reason,
+    status: row.status as Return['status'],
+    refundAmount: row.refund_amount ? Number(row.refund_amount) : null,
+    rejectionReason: row.rejection_reason,
+    requestedAt: row.requested_at,
+    processedAt: row.processed_at,
+    completedAt: row.completed_at,
+    items: (row.items ?? row.return_items ?? []).map((i) => ({
+      id: i.id,
+      returnId: i.return_id,
+      productId: i.product_id,
+      productName: i.products?.name,
+      quantity: i.quantity,
+      unitPrice: Number(i.unit_price),
+      subtotal: Number(i.subtotal)
+    })),
+    paymentMethod: row.order?.payment_method_id || row.sale?.payment_method_id || undefined,
+    paymentReference: row.order?.payment_reference || row.sale?.payment_reference || undefined
   };
 }
 
@@ -66,7 +121,7 @@ function toOrder(row: any): Order {
     promoName: row.promotions?.name,
     isReturned: row.is_returned,
     createdAt: row.created_at,
-    items: (row.transaction_items ?? []).map(toOrderItem),
+    items: (row.transaction_items ?? []).map(toOrderItem)
   };
 }
 
@@ -97,14 +152,14 @@ function toDeliveryPoint(row: any) {
 
 // ─── Products ───────────────────────────────────────────────
 export async function getProducts(): Promise<Product[]> {
-  const { data, error } = await supabase.from('products').select('*, product_images(image_url), categories(name)').order('name');
+  const { data, error } = await supabase.from('products').select('*, product_images(*), categories(name)').order('name');
   if (error) throw error;
   return (data ?? []).map(toProduct);
 }
 
 export async function getProductsByCategory(category: string): Promise<Product[]> {
   const { data, error } = await supabase
-    .from('products').select('*, product_images(image_url), categories(name)').eq('category', category).order('name');
+    .from('products').select('*, product_images(*), categories(name)').eq('category', category).order('name');
   if (error) throw error;
   return (data ?? []).map(toProduct);
 }
@@ -112,7 +167,7 @@ export async function getProductsByCategory(category: string): Promise<Product[]
 export async function getProductById(id: string): Promise<Product | null> {
   const { data, error } = await supabase
     .from('products')
-    .select('*, product_images(image_url), categories(name)')
+    .select('*, product_images(*), categories(name)')
     .eq('id', id)
     .single();
   if (error) return null;
@@ -435,39 +490,15 @@ export async function getReturnsByUser(customerId: string): Promise<Return[]> {
     .from('returns')
     .select(`
       *,
-      items:return_items(*, products(name))
+      items:return_items(*, products(name)),
+      order:online_orders(payment_method_id, payment_reference),
+      sale:sales(payment_method_id, payment_reference)
     `)
     .eq('customer_id', customerId)
     .order('requested_at', { ascending: false });
 
   if (error) throw error;
-  
-  return (data || []).map(r => ({
-    id: r.id,
-    saleId: r.sale_id,
-    orderId: r.order_id,
-    customerId: r.customer_id,
-    initiatedByStaffId: r.initiated_by_staff_id,
-    processedByStaffId: r.processed_by_staff_id,
-    source: r.source as 'IN_STORE' | 'ONLINE',
-    reason: r.reason,
-    status: r.status as Return['status'],
-    refundAmount: r.refund_amount ? Number(r.refund_amount) : null,
-    rejectionReason: r.rejection_reason,
-    requestedAt: r.requested_at,
-    processedAt: r.processed_at,
-    completedAt: r.completed_at,
-    // @ts-expect-ignore
-    items: r.items?.map((i: { id: string, return_id: string, product_id: string, products: { name: string } | null, quantity: number, unit_price: string | number, subtotal: string | number }) => ({
-      id: i.id,
-      returnId: i.return_id,
-      productId: i.product_id,
-      productName: i.products?.name,
-      quantity: i.quantity,
-      unitPrice: Number(i.unit_price),
-      subtotal: Number(i.subtotal)
-    })) || []
-  }));
+  return (data || []).map(toReturn);
 }
 
 export async function checkReturnEligibility(orderId: string, customerId: string): Promise<void> {

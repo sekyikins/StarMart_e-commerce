@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Navbar } from '@/components/layout/Navbar';
 import { CartDrawer } from '@/components/cart/CartDrawer';
@@ -12,7 +12,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import {
   ShoppingCart, ArrowLeft, Package, Tag, AlertTriangle,
   CheckCircle2, Minus, Plus, Star, Truck, ShieldCheck, RotateCcw,
-  MessageSquare, User, Send, Loader2
+  MessageSquare, User, Send, Loader2, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -66,6 +66,7 @@ function ProductDetailContent() {
   
   const [reviewForm, setReviewForm] = useState({ rating: 5, comment: '' });
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [activeImgIdx, setActiveImgIdx] = useState(0);
 
   const cart = useCartStore();
   const { addToast, toasts } = useToastStore();
@@ -73,6 +74,13 @@ function ProductDetailContent() {
 
   const product = useMemo(() => allProducts.find(p => p.id === id) || null, [allProducts, id]);
   
+  useEffect(() => {
+    if (product?.images) {
+      const primaryIdx = product.images.findIndex(img => img.is_primary);
+      if (primaryIdx !== -1) setActiveImgIdx(primaryIdx);
+    }
+  }, [product]);
+
   const related = useMemo(() => {
     if (!product) return [];
     return allProducts.filter(p => 
@@ -157,21 +165,50 @@ function ProductDetailContent() {
         <div className="grid md:grid-cols-2 gap-10 lg:gap-8">
           {/* ── Left: Product Visual ─────────────────────────────── */}
           <div className="space-y-4">
-            {/* Hero image placeholder */}
-            <div className={`relative aspect-square rounded-2xl bg-linear-to-br ${gradient} flex items-center justify-center overflow-hidden shadow-2xl`}>
+            {/* Hero image gallery */}
+            <div className={`relative aspect-square rounded-2xl bg-linear-to-br ${gradient} flex items-center justify-center overflow-hidden shadow-2xl group`}>
               {/* Decorative circles */}
-              <div className="absolute -top-12 -right-12 h-48 w-48 rounded-full bg-white/10 blur-2xl" />
-              <div className="absolute -bottom-8 -left-8 h-32 w-32 rounded-full bg-white/10 blur-xl" />
+              <div className="absolute -top-12 -right-12 h-48 w-48 rounded-full bg-white/10 blur-2xl pointer-events-none" />
+              <div className="absolute -bottom-8 -left-8 h-32 w-32 rounded-full bg-white/10 blur-xl pointer-events-none" />
               
-              {product.image_url ? (
-                <Image 
-                  src={product.image_url} 
-                  alt={product.name} 
-                  fill
-                  priority
-                  sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 500px"
-                  className="absolute inset-0 w-full h-full object-cover z-0" 
-                />
+              {product.images && product.images.length > 0 ? (
+                <>
+                  <Image 
+                    src={product.images[activeImgIdx].image_url} 
+                    alt={product.name} 
+                    fill
+                    priority
+                    sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 500px"
+                    className="absolute inset-0 w-full h-full object-cover z-0 transition-all duration-500" 
+                  />
+                  
+                  {product.images.length > 1 && (
+                    <>
+                      <button 
+                        onClick={() => setActiveImgIdx(prev => (prev === 0 ? product.images!.length - 1 : prev - 1))}
+                        className="absolute left-4 top-1/2 cursor-pointer -translate-y-1/2 h-10 w-10 bg-black/20 hover:bg-black/40 backdrop-blur-md text-white rounded-full flex items-center justify-center transition-all opacity-80 group-hover:opacity-100 z-30 shadow-lg active:scale-90"
+                      >
+                        <ChevronLeft className="h-6 w-6" />
+                      </button>
+                      <button 
+                        onClick={() => setActiveImgIdx(prev => (prev === product.images!.length - 1 ? 0 : prev + 1))}
+                        className="absolute right-4 top-1/2 cursor-pointer -translate-y-1/2 h-10 w-10 bg-black/20 hover:bg-black/40 backdrop-blur-md text-white rounded-full flex items-center justify-center transition-all opacity-80 group-hover:opacity-100 z-30 shadow-lg active:scale-90"
+                      >
+                        <ChevronRight className="h-6 w-6" />
+                      </button>
+                      
+                      <div className="absolute bottom-4 inset-x-0 flex justify-center gap-1.5 z-30">
+                        {product.images.map((_, i) => (
+                          <button 
+                            key={i} 
+                            onClick={() => setActiveImgIdx(i)}
+                            className={`h-1.5 rounded-full transition-all duration-300 ${i === activeImgIdx ? 'w-6 bg-black shadow-md' : 'w-1.5 bg-black/40 hover:bg-black/60'}`} 
+                          />
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </>
               ) : (
                 <span className="text-[8rem] font-black text-white/30 select-none z-10 leading-none">
                   {product.name.charAt(0)}
