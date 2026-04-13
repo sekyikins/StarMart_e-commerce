@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useAuth } from '@/lib/auth';
 import { useCartStore, useSettingsStore } from '@/lib/store';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
-import { ShoppingBag, User, Menu, X } from 'lucide-react';
+import { ShoppingBag, User, ShoppingCart, Menu, X } from 'lucide-react';
 
 interface NavbarProps {
   onCartToggle: () => void;
@@ -97,7 +97,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               onClick={onCartToggle}
               className="relative flex items-center gap-2 h-10 px-4 rounded-full bg-foreground text-background text-sm hover:cursor-pointer font-bold transition-all hover:opacity-85 active:scale-95"
             >
-              <ShoppingBag className="h-4 w-4" />
+              <ShoppingCart className="h-4 w-4" />
               <span className="hidden sm:block">Cart</span>
               {itemCount > 0 && (
                 <span className="absolute -top-1.5 -right-1.5 h-5 min-w-[20px] px-1 rounded-full bg-indigo-600 text-white text-[10px] font-bold border-2 border-background flex items-center justify-center">

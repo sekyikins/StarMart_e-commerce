@@ -166,3 +166,15 @@ export const useSettingsStore = create<SettingsState>((set) => ({
     }
   }
 }));
+
+if (typeof window !== 'undefined') {
+  useCartStore.subscribe((state) => {
+    try {
+      const userStr = localStorage.getItem('ec_user');
+      const userId = userStr ? JSON.parse(userStr).id : 'guest';
+      localStorage.setItem(`ec-cart-${userId}`, JSON.stringify(state.items));
+    } catch (e) {
+      console.error('Failed to save cart to localStorage', e);
+    }
+  });
+}

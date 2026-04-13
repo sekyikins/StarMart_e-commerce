@@ -5,7 +5,7 @@ import { getStorefrontUserByEmail, getStorefrontUserById, deleteStorefrontAccoun
 import { useCartStore } from './store';
 import bcrypt from 'bcryptjs';
 
-import { StorefrontUser } from './types';
+import { StorefrontUser, CartItem } from './types';
 
 interface AuthContextType {
   user: StorefrontUser | null;
@@ -34,16 +34,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const logout = () => {
     setUser(null);
     localStorage.removeItem('ec_user');
-    useCartStore.getState().setItems([]);
+    const savedCart = localStorage.getItem(`ec-cart-guest`);
+    if (savedCart) {
+      try {
+        useCartStore.getState().setItems(JSON.parse(savedCart));
+      } catch {}
+    } else {
+      useCartStore.getState().setItems([]);
+    }
   };
 
   useEffect(() => {
     if (!isMounted) return;
 
     const stored = localStorage.getItem('ec_user');
+    let userId = 'guest';
+
     if (stored) {
       try { 
         const parsed = JSON.parse(stored);
+        userId = parsed.id;
         
         // Verify with database that the user hasn't been deleted/reset
         getStorefrontUserById(parsed.id).then((dbUser) => {
@@ -61,7 +71,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         
       } catch { 
         localStorage.removeItem('ec_user'); 
+        userId = 'guest';
       }
+    }
+
+    const savedCart = localStorage.getItem(`ec-cart-${userId}`);
+    if (savedCart) {
+      try {
+        useCartStore.getState().setItems(JSON.parse(savedCart));
+      } catch {}
+    } else {
+      useCartStore.getState().setItems([]);
     }
   }, [isMounted]);
 
@@ -84,12 +104,38 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
     setUser(u);
     localStorage.setItem('ec_user', JSON.stringify(u));
+
+    const guestCart = useCartStore.getState().items;
+    const mergedCart = [...guestCart.map(item => ({ ...item }))]; // clone guest items
+
+    const savedCartStr = localStorage.getItem(`ec-cart-${u.id}`);
+    if (savedCartStr) {
+      try {
+        const savedCart = JSON.parse(savedCartStr);
+        // Merge saved cart into guest cart
+        savedCart.forEach((savedItem: CartItem) => {
+          const existing = mergedCart.find(i => i.productId === savedItem.productId);
+          if (existing) {
+            existing.quantity = Math.min(existing.quantity + savedItem.quantity, existing.maxQuantity);
+            existing.subtotal = existing.quantity * existing.price;
+          } else {
+            mergedCart.push(savedItem);
+          }
+        });
+      } catch {}
+    }
+
+    useCartStore.getState().setItems(mergedCart);
+    localStorage.removeItem('ec-cart-guest');
+
     return true;
   };
 
   const refreshUser = (u: StorefrontUser) => {
     setUser(u);
     localStorage.setItem('ec_user', JSON.stringify(u));
+    localStorage.setItem(`ec-cart-${u.id}`, JSON.stringify(useCartStore.getState().items));
+    localStorage.removeItem('ec-cart-guest');
   };
 
   const deleteAccount = async () => {

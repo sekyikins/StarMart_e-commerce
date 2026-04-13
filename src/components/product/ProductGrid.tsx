@@ -85,8 +85,8 @@ export const ProductGrid: React.FC<ProductGridProps> = ({ products, onAddToCart,
                 </p>
               )}
 
-              <div className="flex items-center justify-between mt-3 pt-3 border-t border-border gap-2">
-                <span className="text-xl font-bold text-foreground">{currencySymbol}{product.price.toFixed(2)}</span>
+              <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
+                <span className="text-md font-bold text-foreground">{currencySymbol}{product.price.toFixed(2)}</span>
                 {/* Conspicuous "Add to Cart" button */}
                 <button
                   onClick={(e) => { e.preventDefault(); onAddToCart(product); }}
