@@ -7,6 +7,7 @@ import { CartDrawer } from '@/components/cart/CartDrawer';
 import { useRouter } from 'next/navigation';
 import { updateStorefrontUser } from '@/lib/db';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import FocusTrap from 'focus-trap-react';
 import { 
   User, Mail, Phone, ChevronRight, 
   Trash2, LogOut, Shield, CreditCard,
@@ -77,11 +78,11 @@ function SettingsContent() {
               <User className="h-5 w-5" />
               Personal Info
             </button>
-            <button className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-muted-foreground font-bold hover:bg-card transition-all">
+            <button className="w-full flex items- cursor-not-allowed gap-3 px-4 py-3 rounded-2xl text-muted-foreground font-bold hover:bg-card transition-all">
               <Shield className="h-5 w-5" />
               Security & Login
             </button>
-            <button className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-muted-foreground font-bold hover:bg-card transition-all">
+            <button className="w-full flex items- cursor-not-allowed gap-3 px-4 py-3 rounded-2xl text-muted-foreground font-bold hover:bg-card transition-all">
               <CreditCard className="h-5 w-5" />
               Payment Methods
             </button>
@@ -158,9 +159,10 @@ function SettingsContent() {
               </div>
 
               <button 
+                title='Save Profile Changes'
                 type="submit"
                 disabled={isSaving}
-                className="h-12 w-full mt-2 bg-primary text-white rounded-2xl font-bold hover:opacity-90 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                className="h-12 w-full mt-2 bg-primary cursor-pointer text-white rounded-2xl font-bold hover:opacity-90 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {isSaving ? (
                   <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -198,8 +200,9 @@ function SettingsContent() {
             
             <div className="space-y-4">
               <button 
+                title='Log Out of Your Account'
                 onClick={() => setShowLogoutConfirm(true)}
-                className="w-full flex items-center justify-between p-5 rounded-2xl bg-card border border-border hover:border-red-500/30 group transition-all"
+                className="w-full flex items-center cursor-pointer justify-between p-5 rounded-2xl bg-card border border-border hover:border-red-500/30 group transition-all"
               >
                 <div className="flex items-center gap-4 text-left">
                   <div className="h-10 w-10 rounded-xl bg-red-100 dark:bg-red-900/40 text-red-600 flex items-center justify-center transition-transform group-hover:scale-110">
@@ -213,9 +216,10 @@ function SettingsContent() {
                 <ChevronRight className="h-5 w-5 text-muted-foreground opacity-30 group-hover:translate-x-1 transition-all" />
               </button>
 
-              <button 
+              <button
+                title='Permanently Delete Your Account'
                 onClick={() => setShowDeleteConfirm(true)}
-                className="w-full flex items-center justify-between p-5 rounded-2xl bg-red-500/5 border border-red-500/10 hover:border-red-500/50 group transition-all"
+                className="w-full flex items-center cursor-pointer justify-between p-5 rounded-2xl bg-red-500/5 border border-red-500/10 hover:border-red-500/50 group transition-all"
               >
                 <div className="flex items-center gap-4 text-left">
                   <div className="h-10 w-10 rounded-xl bg-red-500/10 text-red-600 flex items-center justify-center transition-transform group-hover:scale-110">
@@ -235,62 +239,68 @@ function SettingsContent() {
 
       {/* Logout Confirmation Modal */}
       {showLogoutConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowLogoutConfirm(false)} />
-          <div className="relative bg-card border border-border w-full max-w-sm rounded-2xl p-8 shadow-2xl animate-in zoom-in-95">
-            <div className="flex justify-center mb-6">
-              <div className="h-16 w-16 rounded-full bg-red-100 text-red-600 flex items-center justify-center">
-                <LogOut className="h-8 w-8" />
+        <FocusTrap focusTrapOptions={{ fallbackFocus: "body" }}>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowLogoutConfirm(false)} />
+            <div className="relative bg-card border border-border w-full max-w-sm rounded-2xl p-8 shadow-2xl animate-in zoom-in-95">
+              <div className="flex justify-center mb-6">
+                <div className="h-16 w-16 rounded-full bg-red-100 text-red-600 flex items-center justify-center">
+                  <LogOut className="h-8 w-8" />
+                </div>
+              </div>
+              <h4 className="text-2xl font-bold text-center mb-2">Confirm Logout</h4>
+              <p className="text-center text-muted-foreground mb-8 font-medium">Are you sure you want to sign out of your account?</p>
+              <div className="grid grid-cols-2 gap-3">
+                <button 
+                  onClick={() => setShowLogoutConfirm(false)}
+                  className="h-12 rounded-xl bg-muted font-bold hover:bg-muted/80"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={() => { logout(); router.push('/'); }}
+                  className="h-12 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700"
+                >
+                  Sign Out
+                </button>
               </div>
             </div>
-            <h4 className="text-2xl font-bold text-center mb-2">Confirm Logout</h4>
-            <p className="text-center text-muted-foreground mb-8 font-medium">Are you sure you want to sign out of your account?</p>
-            <div className="grid grid-cols-2 gap-3">
-              <button 
-                onClick={() => setShowLogoutConfirm(false)}
-                className="h-12 rounded-xl bg-muted font-bold hover:bg-muted/80"
-              >
-                Cancel
-              </button>
-              <button 
-                onClick={() => { logout(); router.push('/'); }}
-                className="h-12 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700"
-              >
-                Sign Out
-              </button>
-            </div>
           </div>
-        </div>
+        </FocusTrap>
       )}
 
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowDeleteConfirm(false)} />
-          <div className="relative bg-card border-2 border-red-500/20 w-full max-w-sm rounded-2xl p-8 shadow-2xl animate-in zoom-in-95">
-            <div className="flex justify-center mb-6">
-              <div className="h-16 w-16 rounded-full bg-red-100 text-red-600 flex items-center justify-center">
-                <Trash2 className="h-8 w-8" />
+        <FocusTrap focusTrapOptions={{ fallbackFocus: "body" }}>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowDeleteConfirm(false)} />
+            <div className="relative bg-card border-2 border-red-500/20 w-full max-w-sm rounded-2xl p-8 shadow-2xl animate-in zoom-in-95">
+              <div className="flex justify-center mb-6">
+                <div className="h-16 w-16 rounded-full bg-red-100 text-red-600 flex items-center justify-center">
+                  <Trash2 className="h-8 w-8" />
+                </div>
+              </div>
+              <h4 className="text-2xl font-bold text-center mb-2 text-red-600">Delete Account?</h4>
+              <p className="text-center text-muted-foreground mb-8 font-medium">This action is permanent and cannot be undone. All your orders and data will be removed.</p>
+              <div className="grid grid-cols-2 gap-3">
+                <button 
+                  autoFocus
+                  title='Cancel Account Deletion'
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="h-12 rounded-xl bg-muted font-bold hover:bg-muted/80 focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                >
+                  Keep Account
+                </button>
+                <button 
+                  onClick={handleDelete}
+                  className="h-12 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 shadow-xl shadow-red-600/20  focus:ring-2 focus:ring-offset-2 focus:ring-destructive"
+                >
+                  Delete Now
+                </button>
               </div>
             </div>
-            <h4 className="text-2xl font-bold text-center mb-2 text-red-600">Delete Account?</h4>
-            <p className="text-center text-muted-foreground mb-8 font-medium">This action is permanent and cannot be undone. All your orders and data will be removed.</p>
-            <div className="grid grid-cols-2 gap-3">
-              <button 
-                onClick={() => setShowDeleteConfirm(false)}
-                className="h-12 rounded-xl bg-muted font-bold hover:bg-muted/80"
-              >
-                Keep Account
-              </button>
-              <button 
-                onClick={handleDelete}
-                className="h-12 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 shadow-xl shadow-red-600/20"
-              >
-                Delete Now
-              </button>
-            </div>
           </div>
-        </div>
+        </FocusTrap>
       )}
     </div>
   );

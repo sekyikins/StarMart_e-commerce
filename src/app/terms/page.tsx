@@ -77,8 +77,8 @@ function TermsContent() {
           </div>
         </div>
 
-        <div className="mt-12 py-6 border-t border-border flex flex-col items-center gap-6 text-center">
-           <div className="h-14 w-14 rounded-2xl bg-primary flex items-center justify-center text-primary-foreground transform rotate-12">
+        <div className="mt-12 py-6 border-t border-border flex flex-col items-center gap-6 text-center group">
+           <div className="h-14 w-14 rounded-2xl bg-primary flex items-center justify-center text-primary-foreground transform rotate-12 group-hover:rotate-0 transition-all duration-500">
              <Shield className="h-8 w-8" />
            </div>
            <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">&copy; 2026 {storeName}. Safe, Reliable, Exceptional Service.</p>

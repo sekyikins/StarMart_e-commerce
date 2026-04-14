@@ -8,6 +8,7 @@ import { X, Minus, Plus, ShoppingBag, MapPin, CreditCard, CheckCircle2, Package,
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
+import FocusTrap from 'focus-trap-react';
 
 const PaystackHandler = dynamic(() => import('./PaystackHandler'), { ssr: false });
 import confetti from 'canvas-confetti';
@@ -261,7 +262,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                 if (step === 'PROMO') setStep('DELIVERY');
                 if (step === 'SUMMARY') setStep('PROMO');
               }}
-              className="p-2 -ml-2 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground transition-all active:scale-90"
+              title='Previous Step'
+              className="p-2 -ml-2 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground transition-all cursor-pointer active:scale-90"
             >
               <ChevronLeft className="h-5 w-5" />
             </button>
@@ -271,7 +273,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
             {titles[step].text}
           </h2>
         </div>
-        <button onClick={onClose} className="p-2 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground transition-all active:scale-95 group">
+        <button onClick={onClose} title='Close Cart' className="p-2 rounded-xl hover:text-destructive hover:bg-muted text-muted-foreground cursor-pointer transition-all active:scale-95 group">
           <X className="h-5 w-5 group-hover:rotate-90 transition-transform duration-300" />
         </button>
       </div>
@@ -279,9 +281,10 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
   };
 
   return (
-    <>
-      <div className={`fixed inset-0 z-50 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} onClick={onClose} />
-      <div className={`fixed inset-y-0 right-0 z-50 w-full sm:w-120 bg-background flex flex-col shadow-2xl transition-transform duration-500 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+    <FocusTrap active={isOpen} focusTrapOptions={{ fallbackFocus: "body" }}>
+      <div className="relative z-50">
+        <div className={`fixed inset-0 z-50 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} onClick={onClose} />
+        <div className={`fixed inset-y-0 right-0 z-50 w-full sm:w-120 bg-background flex flex-col shadow-2xl transition-transform duration-500 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
         {renderHeader()}
         <PaystackHandler
           email={user?.email || ''}
@@ -315,12 +318,12 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
             <div className="p-6 space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
               {cart.items.length === 0 ? (
                 <div className="min-h-[60vh] flex flex-col items-center justify-center text-center">
-                  <div className="h-24 w-24 rounded-full bg-muted/30 flex items-center justify-center mb-6">
-                    <ShoppingBag className="h-12 w-12 text-muted-foreground/20" />
+                  <div className="h-24 w-24 rounded-full text-muted-foreground/20 hover:text-primary/70 hover:scale-110 transition-all bg-muted/30 flex items-center justify-center mb-6">
+                    <ShoppingBag className="h-12 w-12" />
                   </div>
                   <h3 className="text-xl font-bold text-foreground mb-2">Shopping Bag is Empty</h3>
                   <p className="text-muted-foreground text-sm font-medium mb-8 px-12">Looking for something tasty? Browse our collection of premium fresh goods.</p>
-                  <button onClick={onClose} className="px-4 py-3 rounded-2xl bg-primary text-white font-bold shadow-lg shadow-primary/20 hover:scale-[1.05] transition-all active:scale-95">Explore Products</button>
+                  <button onClick={onClose} className="px-4 py-3 rounded-2xl cursor-pointer bg-primary text-white font-bold shadow-lg shadow-primary/20 hover:scale-[1.05] transition-all active:scale-95">Explore Products</button>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -336,13 +339,13 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                       <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
                         <div className="flex justify-between items-start gap-2">
                            <p className="font-bold text-foreground text-base tracking-tight truncate leading-tight">{item.productName}</p>
-                           <button onClick={() => cart.removeItem(item.productId)} className="p-1 text-muted-foreground/30 hover:text-destructive transition-colors"><X className="h-4 w-4"/></button>
+                           <button title={`Remove ${item.productName}`} onClick={() => cart.removeItem(item.productId)} className="p-1 bg-muted rounded-sm text-muted-foreground/30 hover:text-destructive cursor-pointer transition-colors"><X className="h-4 w-4"/></button>
                         </div>
                         <div className="flex justify-between items-end">
                           <div className="flex items-center rounded-xl border-2 border-border bg-background p-0.5">
-                            <button className="h-7 w-7 flex items-center justify-center hover:bg-muted rounded-lg transition-colors" onClick={() => item.quantity > 1 ? cart.updateQuantity(item.productId, item.quantity - 1) : cart.removeItem(item.productId)}><Minus className="h-3 w-3"/></button>
+                            <button title={`Decrease ${item.productName}`} className="h-7 w-7 flex items-center justify-center hover:bg-muted cursor-pointer rounded-lg transition-colors" onClick={() => item.quantity > 1 ? cart.updateQuantity(item.productId, item.quantity - 1) : cart.removeItem(item.productId)}><Minus className="h-3 w-3"/></button>
                             <span className="w-8 text-center text-sm font-bold">{item.quantity}</span>
-                            <button className="h-7 w-7 flex items-center justify-center hover:bg-muted rounded-lg transition-colors" onClick={() => cart.updateQuantity(item.productId, item.quantity + 1)}><Plus className="h-3 w-3"/></button>
+                            <button title={`Increase ${item.productName}`} className="h-7 w-7 flex items-center justify-center hover:bg-muted cursor-pointer rounded-lg transition-colors" onClick={() => cart.updateQuantity(item.productId, item.quantity + 1)}><Plus className="h-3 w-3"/></button>
                           </div>
                           <p className="font-bold text-primary text-base">{currencySymbol}{item.subtotal.toFixed(2)}</p>
                         </div>
@@ -360,7 +363,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                  <div className="grid grid-cols-1 gap-3">
                     <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-[0.2em] px-2">{storeName} Centers</p>
                     {deliveryPoints.map(dp => (
-                      <button key={dp.id} onClick={() => { setSelectedDeliveryPoint(dp.id); setUseCustomAddress(false); }} className={`flex items-start gap-4 p-3 rounded-2xl border-2 text-left transition-all ${selectedDeliveryPoint === dp.id && !useCustomAddress ? 'border-primary bg-primary/5 shadow-lg' : 'border-border bg-card hover:border-primary/30'}`}>
+                      <button title={`Select ${dp.name} as delivery point`} key={dp.id} onClick={() => { setSelectedDeliveryPoint(dp.id); setUseCustomAddress(false); }} className={`flex items-start gap-4 p-3 cursor-pointer rounded-2xl border-2 text-left transition-all ${selectedDeliveryPoint === dp.id && !useCustomAddress ? 'border-primary bg-primary/5 shadow-lg' : 'border-border bg-card hover:border-primary/30'}`}>
                          <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${selectedDeliveryPoint === dp.id && !useCustomAddress ? 'bg-primary text-white' : 'bg-muted text-muted-foreground'}`}>
                             <MapPin className="h-5 w-5" />
                          </div>
@@ -371,7 +374,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                       </button>
                     ))}
                     <div className="pt-2">
-                       <button onClick={() => setUseCustomAddress(true)} className={`w-full flex items-center gap-4 p-5 rounded-2xl border-2 text-left transition-all ${useCustomAddress ? 'border-primary bg-primary/5' : 'border-border bg-card'}`}>
+                       <button title='Enter Custom Location for Delivery' onClick={() => setUseCustomAddress(true)} className={`w-full flex items-center gap-4 cursor-pointer p-5 rounded-2xl border-2 text-left transition-all ${useCustomAddress ? 'border-primary bg-primary/5' : 'border-border bg-card'}`}>
                           <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${useCustomAddress ? 'bg-primary text-white' : 'bg-muted text-muted-foreground'}`}>
                              <ArrowRight className="h-5 w-5" />
                           </div>
@@ -386,7 +389,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                              <AlertCircle className="h-4 w-4" />
                              Note: Custom delivery attracts a {currencySymbol}15.00 non-refundable fee.
                            </div>
-                           <textarea value={customAddress} onChange={e => setCustomAddress(e.target.value)} className="w-full rounded-2xl border-2 border-primary/50 bg-card p-5 text-sm font-bold text-foreground outline-none focus:border-primary transition-all resize-none shadow-xl" rows={4} placeholder="Floor, building, street, landmark..." />
+                           <textarea autoFocus value={customAddress} onChange={e => setCustomAddress(e.target.value)} className="w-full rounded-2xl border-2 border-primary/50 bg-card p-5 text-sm font-bold text-foreground outline-none focus:border-primary transition-all resize-none shadow-xl" rows={4} placeholder="Floor, building, street, landmark..." />
                          </div>
                        )}
                     </div>
@@ -402,8 +405,9 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                   <div className="bg-card rounded-2xl p-4 border-2 border-border shadow-sm flex flex-col gap-3">
                     {!appliedPromo ? (
                       <div className="flex gap-2">
-                        <input type="text" value={promoCodeInput} onChange={e => setPromoCodeInput(e.target.value.toUpperCase())} placeholder="CODE..." className="flex-1 rounded-xl border-2 border-border bg-background px-4 text-sm font-bold h-12" />
+                        <input autoFocus type="text" value={promoCodeInput} onChange={e => setPromoCodeInput(e.target.value.toUpperCase())} placeholder="CODE..." className="flex-1 rounded-xl border-2 border-border bg-background px-4 text-sm font-bold h-12" />
                         <button 
+                          title='Apply Promo'
                           onClick={handleApplyPromo} 
                           disabled={!canApplyPromo || isApplyingPromo} 
                           className="px-5 rounded-xl bg-primary text-white font-bold text-sm disabled:bg-primary/50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center min-w-[80px]"
@@ -417,7 +421,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                           <CheckCircle2 className="h-6 w-6 text-success" />
                           <p className="text-sm font-bold text-success">{appliedPromo.name}</p>
                         </div>
-                        <button onClick={handleRemovePromo} className="text-success hover:text-destructive transition-colors"><X className="h-5 w-5"/></button>
+                        <button onClick={handleRemovePromo} className="text-success cursor-pointer hover:text-destructive transition-colors"><X className="h-5 w-5"/></button>
                       </div>
                     )}
                     {promoError && <p className="text-xs font-bold text-destructive px-1">{promoError}</p>}
@@ -430,10 +434,10 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
             <div className="p-6 space-y-8 animate-in fade-in slide-in-from-right-4 duration-300 pb-24">
                <div className="space-y-6">
                  <div className="space-y-4">
-                  <div className="bg-card rounded-2xl p-5 border-2 border-border shadow-sm">
-                     <div className="flex justify-between items-start mb-4">
+                  <div className="bg-card rounded-2xl p-4 pt-2 border-2 border-border shadow-sm">
+                     <div className="flex justify-between items-center mb-2">
                         <span className="text-[10px] font-bold text-primary uppercase tracking-[0.2em]">Ship To</span>
-                        <button onClick={() => setStep('DELIVERY')} className="text-[10px] font-bold text-muted-foreground underline">Edit</button>
+                        <button title='Edit Delivery Location' onClick={() => setStep('DELIVERY')} className="text-[10px] p-2 font-bold text-muted-foreground hover:text-primary transition-colors cursor-pointer">Edit</button>
                      </div>
                      <p className="font-bold text-sm text-foreground">{useCustomAddress ? 'Custom Address' : (deliveryPoints.find(d => d.id === selectedDeliveryPoint)?.name)}</p>
                      <p className="text-[11px] text-muted-foreground mt-1">{useCustomAddress ? customAddress : (deliveryPoints.find(d => d.id === selectedDeliveryPoint)?.address)}</p>
@@ -461,7 +465,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                     <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Payment</span>
                     <div className="grid grid-cols-1 gap-3">
                       {(['PAYSTACK', 'PAY_ON_DELIVERY'] as const).map(m => (
-                        <button key={m} onClick={() => setPaymentMethod(m)} className={`flex items-center gap-4 p-3 rounded-2xl border-2 cursor-pointer ${paymentMethod === m ? 'border-primary bg-primary/5 shadow-md' : 'border-border bg-card'}`}>
+                        <button title={m === 'PAYSTACK' ? 'Pay with Paystack' : 'Pay on Delivery'} key={m} onClick={() => setPaymentMethod(m)} className={`flex items-center gap-4 p-3 rounded-2xl border-2 cursor-pointer ${paymentMethod === m ? 'border-primary bg-primary/5 shadow-md' : 'border-border bg-card'}`}>
                            <div className={`p-3 rounded-xl ${paymentMethod === m ? 'bg-primary text-white' : 'bg-muted text-muted-foreground'}`}>
                               {m === 'PAYSTACK' ? <CreditCard className="h-5 w-5"/> : <Package className="h-5 w-5"/>}
                            </div>
@@ -493,7 +497,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                 </p>
               </div>
 
-              <div 
+              <div
+                title='Copy Order ID'
                 onClick={copyToClipboard}
                 className={`w-full max-w-sm cursor-pointer relative group transition-all duration-500 animate-in fade-in slide-in-from-bottom-4 delay-400 ${
                   copied ? 'scale-95' : 'hover:scale-102 hover:-translate-y-1'
@@ -533,16 +538,16 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
         {step !== 'SUCCESS' && (
           <div className="p-4 border-t border-border bg-card shrink-0">
             {step === 'CART' && cart.items.length > 0 && (
-              <button onClick={handleStartCheckout} className="w-full h-14 rounded-2xl bg-indigo-600 text-white font-bold cursor-pointer">CHECKOUT · {currencySymbol}{cart.getTotal().toFixed(2)}</button>
+              <button title={`Checkout ${currencySymbol}${cart.getTotal().toFixed(2)}`} onClick={handleStartCheckout} className="w-full h-14 rounded-2xl bg-indigo-600 text-white font-bold cursor-pointer">CHECKOUT · {currencySymbol}{cart.getTotal().toFixed(2)}</button>
             )}
             {step === 'DELIVERY' && (
-               <button onClick={() => setStep('PROMO')} disabled={!canProceedFromDelivery} className="w-full h-14 rounded-2xl bg-primary text-white font-bold opacity-100 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer">PROCEED TO PROMO</button>
+               <button title='Proceed to Promo' onClick={() => setStep('PROMO')} disabled={!canProceedFromDelivery} className="w-full h-14 rounded-2xl bg-primary text-white font-bold opacity-100 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer">PROCEED TO PROMO</button>
             )}
             {step === 'PROMO' && (
-               <button onClick={() => setStep('SUMMARY')} className="w-full h-14 rounded-2xl bg-primary text-white font-bold cursor-pointer">REVIEW & PAY</button>
+               <button title='Proceed to Summary' onClick={() => setStep('SUMMARY')} className="w-full h-14 rounded-2xl bg-primary text-white font-bold cursor-pointer">REVIEW & PAY</button>
             )}
             {step === 'SUMMARY' && (
-               <button onClick={() => paymentMethod === 'PAYSTACK' ? handlePaystackPayment() : handlePlaceOrder()} disabled={isProcessing} className="w-full h-14 rounded-2xl bg-primary text-white font-bold cursor-pointer">
+               <button title='Proceed to Payment and Finalization' onClick={() => paymentMethod === 'PAYSTACK' ? handlePaystackPayment() : handlePlaceOrder()} disabled={isProcessing} className="w-full h-14 rounded-2xl bg-primary text-white font-bold cursor-pointer">
                  {isProcessing ? <Loader2 className="h-5 w-5 animate-spin mx-auto" /> : (paymentMethod === 'PAYSTACK' ? `PAY ${currencySymbol}${finalTotal.toFixed(2)} NOW` : 'PLACE ORDER')}
                </button>
             )}
@@ -552,12 +557,14 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
         {step === 'SUCCESS' && (
           <div className="p-8 border-t border-border bg-card shrink-0 gap-4 flex animate-in slide-in-from-bottom-8 duration-700 delay-600">
             <button 
+              title='Back to Home'
               onClick={() => { setStep('CART'); onClose(); }}
               className="flex-1 h-14 rounded-2xl border-2 border-border font-bold text-muted-foreground uppercase tracking-widest text-[10px] cursor-pointer hover:bg-muted transition-colors active:scale-95"
             >
               Back Home
             </button>
-            <button 
+            <button
+              title='View My Orders'
               onClick={() => { router.push('/orders'); onClose(); }}
               className="flex-2 h-14 rounded-2xl bg-foreground text-background font-bold uppercase tracking-widest text-[10px] cursor-pointer shadow-xl shadow-foreground/10 hover:opacity-90 transition-all active:scale-95 flex items-center justify-center gap-2"
             >
@@ -567,6 +574,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
           </div>
         )}
       </div>
-    </>
+      </div>
+    </FocusTrap>
   );
 };

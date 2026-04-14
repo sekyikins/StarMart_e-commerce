@@ -5,6 +5,7 @@ import { useAuth } from '@/lib/auth';
 import { Navbar } from '@/components/layout/Navbar';
 import { CartDrawer } from '@/components/cart/CartDrawer';
 import { useRouter } from 'next/navigation';
+import FocusTrap from 'focus-trap-react';
 import { 
   User, Mail, Phone, Star, ShoppingBag, 
   Settings, MapPin, 
@@ -20,49 +21,52 @@ import { useRealtimeTable } from '@/hooks/useRealtimeTable';
 function LoyaltyModal({ onClose }: { onClose: () => void }) {
   const { storeName } = useSettingsStore();
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-card border border-border w-full max-w-lg rounded-2xl p-8 shadow-2xl animate-in zoom-in-95 duration-200">
-        <div className="flex justify-center mb-6">
-          <div className="h-20 w-20 rounded-2xl bg-yellow-400 flex items-center justify-center shadow-xl shadow-yellow-400/20">
-            <Star className="h-10 w-10 text-indigo-900 fill-indigo-900" />
-          </div>
-        </div>
-        <h2 className="text-3xl font-bold text-center mb-2">{storeName} Loyalty</h2>
-        <p className="text-center text-muted-foreground mb-8 text-sm px-4">Your loyalty is recognized! Use your points for exclusive discounts and free deliveries on future orders.</p>
-        
-        <div className="space-y-4">
-          <div className="p-5 rounded-2xl bg-muted/50 border border-border flex gap-4">
-            <div className="h-10 w-10 shrink-0 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold">1</div>
-            <div>
-              <h4 className="font-bold text-sm">Welcome Gift</h4>
-              <p className="text-xs text-muted-foreground mt-0.5">Get 100 free points instantly when you create your {storeName} account.</p>
+    <FocusTrap focusTrapOptions={{ fallbackFocus: "body" }}>
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+        <div className="relative bg-card border border-border w-full max-w-lg rounded-2xl p-8 shadow-2xl animate-in zoom-in-95 duration-200">
+          <div className="flex justify-center mb-6">
+            <div className="h-20 w-20 rounded-2xl bg-yellow-400 flex items-center justify-center shadow-xl shadow-yellow-400/20">
+              <Star className="h-10 w-10 text-indigo-900 fill-indigo-900" />
             </div>
           </div>
-          <div className="p-5 rounded-2xl bg-muted/50 border border-border flex gap-4">
-            <div className="h-10 w-10 shrink-0 rounded-xl bg-orange-500/10 text-orange-500 flex items-center justify-center font-bold">2</div>
-            <div>
-              <h4 className="font-bold text-sm">Daily Purchase Bonus</h4>
-              <p className="text-xs text-muted-foreground mt-0.5">Earn 50 points for every day you make a purchase, regardless of the order size.</p>
+          <h2 className="text-3xl font-bold text-center mb-2">{storeName} Loyalty</h2>
+          <p className="text-center text-muted-foreground mb-8 text-sm px-4">Your loyalty is recognized! Use your points for exclusive discounts and free deliveries on future orders.</p>
+          
+          <div className="space-y-4">
+            <div className="p-5 rounded-2xl bg-muted/50 border border-border flex gap-4">
+              <div className="h-10 w-10 shrink-0 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold">1</div>
+              <div>
+                <h4 className="font-bold text-sm">Welcome Gift</h4>
+                <p className="text-xs text-muted-foreground mt-0.5">Get 100 free points instantly when you create your {storeName} account.</p>
+              </div>
+            </div>
+            <div className="p-5 rounded-2xl bg-muted/50 border border-border flex gap-4">
+              <div className="h-10 w-10 shrink-0 rounded-xl bg-orange-500/10 text-orange-500 flex items-center justify-center font-bold">2</div>
+              <div>
+                <h4 className="font-bold text-sm">Daily Purchase Bonus</h4>
+                <p className="text-xs text-muted-foreground mt-0.5">Earn 50 points for every day you make a purchase, regardless of the order size.</p>
+              </div>
+            </div>
+            <div className="p-5 rounded-2xl bg-muted/50 border border-border flex gap-4">
+              <div className="h-10 w-10 shrink-0 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center font-bold">3</div>
+              <div>
+                <h4 className="font-bold text-sm">Exclusive Promos</h4>
+                <p className="text-xs text-muted-foreground mt-0.5">Participate in monthly challenges to multiply your earnings and unlock higher tiers.</p>
+              </div>
             </div>
           </div>
-          <div className="p-5 rounded-2xl bg-muted/50 border border-border flex gap-4">
-            <div className="h-10 w-10 shrink-0 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center font-bold">3</div>
-            <div>
-              <h4 className="font-bold text-sm">Exclusive Promos</h4>
-              <p className="text-xs text-muted-foreground mt-0.5">Participate in monthly challenges to multiply your earnings and unlock higher tiers.</p>
-            </div>
-          </div>
-        </div>
 
-        <button 
-          onClick={onClose}
-          className="w-full mt-8 h-12 rounded-2xl bg-primary text-white font-bold hover:scale-[1.02] transition-transform active:scale-95"
-        >
-          Got it
-        </button>
+          <button 
+            title='Got it'
+            onClick={onClose}
+            className="w-full mt-8 h-12 rounded-2xl cursor-pointer bg-primary text-white font-bold hover:scale-[1.02] transition-transform active:scale-95"
+          >
+            Got it
+          </button>
+        </div>
       </div>
-    </div>
+    </FocusTrap>
   );
 }
 
@@ -138,10 +142,11 @@ function ProfileContent() {
               </p>
             </div>
             <button 
+              title='Help on Loyalty'
               onClick={() => setShowLoyaltyModal(true)}
               className="bg-white/10 backdrop-blur p-4 rounded-2xl border border-white/20 self-start md:self-auto hover:bg-white/20 transition-all group active:scale-95 shadow-xl"
             >
-              <div className="flex items-center gap-3 text-left">
+              <div className="flex items-center cursor-pointer gap-3 text-left">
                 <div className="h-10 w-10 rounded-xl bg-yellow-400 flex items-center justify-center shadow-lg shadow-yellow-400/20 group-hover:scale-110 transition-transform">
                   <Star className="h-6 w-6 text-indigo-900 fill-indigo-900" />
                 </div>
@@ -163,19 +168,20 @@ function ProfileContent() {
             {/* Desktop Sidebar */}
             <div className="hidden lg:block space-y-1.5">
               {[
-                { icon: User, label: 'Dashboard', active: true },
-                { icon: ShoppingBag, label: 'My Orders', href: '/orders' },
-                { icon: RotateCcw, label: 'My Returns', href: '/returns' },
-                { icon: Settings, label: 'Account Settings', href: '/settings' },
-                { icon: ShieldCheck, label: 'Privacy Policy', href: '/privacy' },
-                { icon: FileText, label: 'Terms & Conditions', href: '/terms' },
-                { icon: HelpCircle, label: 'Help Center', href: '/faq' },
+                { icon: User, label: 'Dashboard', active: true, title: 'Dashboard' },
+                { icon: ShoppingBag, label: 'My Orders', href: '/orders', title: 'My Orders' },
+                { icon: RotateCcw, label: 'My Returns', href: '/returns', title: 'My Returns' },
+                { icon: Settings, label: 'Account Settings', href: '/settings', title: 'Account Settings' },
+                { icon: ShieldCheck, label: 'Privacy Policy', href: '/privacy', title: 'Privacy Policy' },
+                { icon: FileText, label: 'Terms & Conditions', href: '/terms', title: 'Terms & Conditions' },
+                { icon: HelpCircle, label: 'Help Center', href: '/faq', title: 'Help Center' },
               ].map((item, idx) => (
                 item.href ? (
                   <Link 
+                    title={item.title}
                     key={idx} 
                     href={item.href}
-                    className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-sm font-bold transition-all hover:bg-card hover:translate-x-1 hover:shadow-xl hover:shadow-indigo-500/5 hover:border hover:border-border/50"
+                    className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-sm font-bold transition-all hover:bg-card hover:translate-x-1 hover:shadow-xl hover:shadow-indigo-500/5 border border-border"
                   >
                     <item.icon className="h-5 w-5 text-muted-foreground" />
                     {item.label}
@@ -198,8 +204,9 @@ function ProfileContent() {
               ))}
               
               <button 
+                title='Sign Out of Your Account'
                 onClick={() => setShowLogoutConfirm(true)}
-                className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-sm font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-all mt-4 group"
+                className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-sm font-bold text-red-500 hover:bg-destructive/5 transition-all border border-destructive/50 hover:border-destructive cursor-pointer mt-4 group"
               >
                 <div className="h-8 w-8 rounded-lg bg-red-50 dark:bg-red-900/20 flex items-center justify-center transition-transform group-hover:scale-110">
                   <LogOut className="h-4 w-4" />
@@ -281,7 +288,7 @@ function ProfileContent() {
             <div className="bg-card rounded-2xl border-2 border-border overflow-hidden shadow-2xl shadow-indigo-500/10 mb-8">
               <div className="px-8 py-6 border-b-2 border-border flex items-center justify-between bg-muted/30 backdrop-blur-sm">
                 <h3 className="font-bold text-xl">Personal Information</h3>
-                <Link href="/settings" className="px-4 h-9 flex items-center rounded-full bg-primary/10 text-primary text-xs font-bold hover:bg-primary/20 transition-all gap-1">
+                <Link href="/settings" title='Profile Settings' className="px-4 h-9 flex items-center rounded-full bg-primary/10 text-primary text-xs font-bold hover:bg-primary/20 transition-all gap-1">
                   Manage <span className='hidden md:block'>Settings</span> <ChevronRight className="h-3 w-3" />
                 </Link>
               </div>
@@ -317,7 +324,7 @@ function ProfileContent() {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="font-bold text-xl px-2">Recent Orders</h3>
-                <Link href="/orders" className="text-sm font-bold text-primary flex items-center gap-1 hover:gap-2 transition-all">
+                <Link title='My Orders' href="/orders" className="text-sm font-bold text-primary flex items-center gap-1 hover:gap-2 transition-all">
                   See Full History <ChevronRight className="h-4 w-4" />
                 </Link>
               </div>
@@ -375,33 +382,35 @@ function ProfileContent() {
 
       {/* Logout Confirmation Modal */}
       {showLogoutConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowLogoutConfirm(false)} />
-          <div className="relative bg-card border-2 border-border/80 w-full max-w-sm rounded-2xl p-8 shadow-2xl animate-in zoom-in-95">
-            <div className="flex justify-center mb-6">
-              <div className="h-16 w-16 rounded-full bg-red-100 text-red-600 flex items-center justify-center">
-                <LogOut className="h-8 w-8" />
+        <FocusTrap focusTrapOptions={{ fallbackFocus: "body" }}>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowLogoutConfirm(false)} />
+            <div className="relative bg-card border-2 border-border/80 w-full max-w-sm rounded-2xl p-8 shadow-2xl animate-in zoom-in-95">
+              <div className="flex justify-center mb-6">
+                <div className="h-16 w-16 rounded-full bg-red-100 text-red-600 flex items-center justify-center">
+                  <LogOut className="h-8 w-8" />
+                </div>
+              </div>
+              <h4 className="text-2xl font-bold text-center mb-2">Sign Out</h4>
+              <p className="text-center text-muted-foreground mb-8 font-medium">Are you sure you want to sign out of your {storeName} account?</p>
+              <div className="grid grid-cols-2 gap-3">
+                <button 
+                  onClick={() => setShowLogoutConfirm(false)}
+                  className="h-12 rounded-xl bg-muted font-bold hover:bg-muted/80 transition-colors"
+                >
+                  No, Stay
+                </button>
+                <button 
+                  onClick={() => { logout(); router.push('/'); }}
+                  className="h-12 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 shadow-lg shadow-red-600/20 transition-all active:scale-95"
+                >
+                  Yes, Sign Out
+                </button>
               </div>
             </div>
-            <h4 className="text-2xl font-bold text-center mb-2">Sign Out</h4>
-            <p className="text-center text-muted-foreground mb-8 font-medium">Are you sure you want to sign out of your {storeName} account?</p>
-            <div className="grid grid-cols-2 gap-3">
-              <button 
-                onClick={() => setShowLogoutConfirm(false)}
-                className="h-12 rounded-xl bg-muted font-bold hover:bg-muted/80 transition-colors"
-              >
-                No, Stay
-              </button>
-              <button 
-                onClick={() => { logout(); router.push('/'); }}
-                className="h-12 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 shadow-lg shadow-red-600/20 transition-all active:scale-95"
-              >
-                Yes, Sign Out
-              </button>
-            </div>
           </div>
-        </div>
-      )}
+        </FocusTrap>
+        )}
     </div>
   );
 }

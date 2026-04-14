@@ -32,7 +32,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         <div className="flex h-16 items-center gap-4">
 
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 shrink-0">
+          <Link href="/" title='Home' className="flex items-center gap-2 shrink-0">
             <div className="h-8 w-8 rounded-lg bg-indigo-600 flex items-center justify-center shadow shadow-indigo-500/30">
               <ShoppingBag className="h-5 w-5 text-white" />
             </div>
@@ -44,6 +44,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <div className="flex-1 max-w-2xl hidden sm:block">
               <input
                 type="text"
+                title='Search products, brands, categories...'
                 placeholder="Search products, brands, categories..."
                 value={searchQuery}
                 onChange={e => onSearchChange?.(e.target.value)}
@@ -58,6 +59,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Desktop nav links */}
             <div className="hidden sm:flex items-center gap-1">
               <Link
+                title='Products'
                 href="/products"
                 className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors rounded-lg hover:bg-muted"
               >
@@ -68,6 +70,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <>
 
                   <Link
+                    title='Profile'
                     href="/profile"
                     className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors rounded-lg hover:bg-muted"
                   >
@@ -80,6 +83,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </>
               ) : (
                 <Link
+                  title='Sign In/Sign Up'
                   href="/login"
                   className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors rounded-lg hover:bg-muted"
                 >
@@ -94,6 +98,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
             {/* Cart button */}
             <button
+              title='Open Cart'
               onClick={onCartToggle}
               className="relative flex items-center gap-2 h-10 px-4 rounded-full bg-foreground text-background text-sm hover:cursor-pointer font-bold transition-all hover:opacity-85 active:scale-95"
             >

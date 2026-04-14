@@ -14,6 +14,24 @@ interface ProductGridProps {
 
 export const ProductGrid: React.FC<ProductGridProps> = ({ products, onAddToCart, isLoading }) => {
   const { currencySymbol } = useSettingsStore();
+
+  React.useEffect(() => {
+    if (!isLoading && products.length > 0) {
+      const savedScroll = sessionStorage.getItem('productGridScroll');
+      if (savedScroll) {
+        // Small delay to ensure DOM has painted the grid elements before scrolling
+        setTimeout(() => {
+          window.scrollTo({ top: parseInt(savedScroll, 10), behavior: 'smooth' });
+          sessionStorage.removeItem('productGridScroll');
+        }, 100);
+      }
+    }
+  }, [isLoading, products.length]);
+
+  const handleProductClick = () => {
+    sessionStorage.setItem('productGridScroll', window.scrollY.toString());
+  };
+
   if (isLoading) {
     return (
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-5">
@@ -44,12 +62,12 @@ export const ProductGrid: React.FC<ProductGridProps> = ({ products, onAddToCart,
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-5">
       {products.map(product => {
         const outOfStock = product.quantity <= 0;
-        const lowStock = !outOfStock && product.quantity <= 5;
+        const lowStock = !outOfStock && product.quantity <= 10;
         const index = products.indexOf(product);
         return (
-          <div key={product.id} className="bg-card rounded-2xl border border-border overflow-hidden flex flex-col group hover:border-primary/40 hover:shadow-xl hover:shadow-primary/10 transition-all duration-300">
+          <div key={product.id} className="bg-card rounded-2xl h-fit border border-border overflow-hidden flex flex-col group hover:border-primary/40 hover:shadow-xl hover:shadow-primary/10 transition-all duration-300">
             {/* Clickable image area → detail page */}
-            <Link href={`/products/${product.id}`} className="block">
+            <Link title='View Product Details' href={`/products/${product.id}`} className="block" onClick={handleProductClick}>
               <div className={`aspect-square relative overflow-hidden flex items-center justify-center text-5xl font-bold select-none ${outOfStock ? 'bg-muted text-muted-foreground/30' : 'bg-primary/5 text-primary/20 group-hover:bg-primary/10'} transition-colors duration-300`}>
                 {product.image_url ? (
                   <Image 
@@ -67,23 +85,28 @@ export const ProductGrid: React.FC<ProductGridProps> = ({ products, onAddToCart,
                 <div className="absolute inset-0 bg-linear-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 {outOfStock && (
                   <div className="absolute inset-0 bg-background/60 flex items-center justify-center backdrop-blur-[2px] z-10">
-                    <span className="text-[10px] font-bold text-muted-foreground border border-border bg-card px-2 py-0.5 rounded uppercase tracking-tighter">Out of Stock</span>
+                    <span className="text-[12px] font-bold text-destructive border border-destructive bg-card px-2 py-0.5 rounded uppercase tracking-tighter">Out of Stock</span>
                   </div>
                 )}
               </div>
             </Link>
-
+            
+            <Link href={`/products/${product.id}`} title='View Product Details'>
             <div className="p-4 flex-1 flex flex-col">
-              <Link href={`/products/${product.id}`} className="flex-1 block group/title">
-                <p className="text-[10px] font-bold text-primary uppercase tracking-wider mb-1">{product.category}</p>
-                <h3 className="font-bold text-sm leading-tight line-clamp-2 text-foreground mb-1 group-hover/title:text-primary transition-colors">{product.name}</h3>
-              </Link>
+              <div className="flex flex-wrap">
+                <div className="flex-1 min-w-20 block group/title" onClick={handleProductClick}>
+                  <p className="text-[10px] font-bold text-primary uppercase tracking-wider mb-1">{product.category}</p>
+                  <h3 className="font-bold text-sm leading-tight line-clamp-2 text-foreground mb-1 group-hover/title:text-primary transition-colors">{product.name}</h3>
+                </div>
 
-              {lowStock && (
-                <p className="text-[10px] text-warning font-bold mb-2 bg-warning/10 px-2 py-0.5 rounded-md inline-block w-fit">
-                  Only {product.quantity} left!
-                </p>
-              )}
+                <div>
+                  {lowStock && (
+                    <p className="text-[12px] text-warning font-bold bg-warning/5 px-2 py-0.5 rounded-md border inline-block w-fit">
+                      Only {product.quantity} left!
+                    </p>
+                  )}
+                </div>
+              </div>
 
               <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
                 <span className="text-md font-bold text-foreground">{currencySymbol}{product.price.toFixed(2)}</span>
@@ -91,7 +114,8 @@ export const ProductGrid: React.FC<ProductGridProps> = ({ products, onAddToCart,
                 <button
                   onClick={(e) => { e.preventDefault(); onAddToCart(product); }}
                   disabled={outOfStock}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/90 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-md shadow-primary/30 hover:shadow-lg hover:shadow-primary/40"
+                  title='Add to Cart'
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/90 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-all shadow-md shadow-primary/30 hover:scale-105 hover:shadow-lg hover:shadow-primary/40"
                 >
                   <Plus className="h-3.5 w-3.5 shrink-0" />
                   <span className="hidden sm:inline">Add</span>
@@ -99,6 +123,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({ products, onAddToCart,
                 </button>
               </div>
             </div>
+            </Link>
           </div>
         );
       })}

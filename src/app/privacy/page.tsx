@@ -89,7 +89,7 @@ function PrivacyContent() {
            <p className="text-muted-foreground mb-6">Our security team is ready to help you with any concerns.</p>
            <a 
              href={`mailto:${contactEmail}`} 
-             className="inline-flex items-center gap-2 h-12 px-8 rounded-2xl bg-foreground text-background font-bold hover:opacity-90 transition-all active:scale-95"
+             className="inline-flex items-center gap-2 h-12 px-8 rounded-2xl bg-foreground hover:bg-foreground/90 hover:scale-105 text-background font-bold hover:opacity-90 transition-all active:scale-95"
            >
               <Mail className="h-5 w-5" />
               Contact Privacy Team

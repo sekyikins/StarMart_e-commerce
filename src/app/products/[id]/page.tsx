@@ -144,7 +144,7 @@ function ProductDetailContent() {
   if (!product) return null;
 
   const outOfStock = product.quantity <= 0;
-  const lowStock = !outOfStock && product.quantity <= 5;
+  const lowStock = !outOfStock && product.quantity <= 10;
   const gradient = getColor(product.id);
   const maxQty = Math.min(product.quantity, 10);
 
@@ -185,12 +185,14 @@ function ProductDetailContent() {
                   {product.images.length > 1 && (
                     <>
                       <button 
+                        title='Previous Image'
                         onClick={() => setActiveImgIdx(prev => (prev === 0 ? product.images!.length - 1 : prev - 1))}
                         className="absolute left-4 top-1/2 cursor-pointer -translate-y-1/2 h-10 w-10 bg-black/20 hover:bg-black/40 backdrop-blur-md text-white rounded-full flex items-center justify-center transition-all opacity-80 group-hover:opacity-100 z-30 shadow-lg active:scale-90"
                       >
                         <ChevronLeft className="h-6 w-6" />
                       </button>
                       <button 
+                        title='Next Image'
                         onClick={() => setActiveImgIdx(prev => (prev === product.images!.length - 1 ? 0 : prev + 1))}
                         className="absolute right-4 top-1/2 cursor-pointer -translate-y-1/2 h-10 w-10 bg-black/20 hover:bg-black/40 backdrop-blur-md text-white rounded-full flex items-center justify-center transition-all opacity-80 group-hover:opacity-100 z-30 shadow-lg active:scale-90"
                       >
@@ -200,9 +202,10 @@ function ProductDetailContent() {
                       <div className="absolute bottom-4 inset-x-0 flex justify-center gap-1.5 z-30">
                         {product.images.map((_, i) => (
                           <button 
+                            title='Image Indicator'
                             key={i} 
                             onClick={() => setActiveImgIdx(i)}
-                            className={`h-1.5 rounded-full transition-all duration-300 ${i === activeImgIdx ? 'w-6 bg-black shadow-md' : 'w-1.5 bg-black/40 hover:bg-black/60'}`} 
+                            className={`h-1.5 rounded-full transition-all duration-300 ${i === activeImgIdx ? 'w-6 bg-black shadow-md' : 'w-1.5 bg-black/40 hover:bg-black/60 cursor-pointer'}`} 
                           />
                         ))}
                       </div>
@@ -295,8 +298,8 @@ function ProductDetailContent() {
                            'bg-success/10 text-success border border-success/20'
             }`}>
               <Package className="h-4 w-4 shrink-0" />
-              {outOfStock ? 'This item is currently out of stock'
-                : lowStock ? `Hurry! Only ${product.quantity} remaining`
+              {outOfStock ? 'Currently out of stock'
+                : lowStock ? `Hurry! Only ${product.quantity} left`
                 : `${product.quantity} units available`}
             </div>
             </div>
@@ -307,6 +310,7 @@ function ProductDetailContent() {
                 <span className="text-sm font-black text-muted-foreground uppercase tracking-widest">Quantity</span>
                 <div className="flex items-center gap-2 bg-muted/30 rounded-2xl p-1.5">
                   <button
+                    title='Decrease Quantity'
                     onClick={() => setQty(q => Math.max(1, q - 1))}
                     className="h-9 w-9 rounded-xl bg-card border border-border flex items-center justify-center hover:cursor-pointer hover:border-primary/50 transition-all active:scale-95 shadow-sm"
                   >
@@ -314,6 +318,7 @@ function ProductDetailContent() {
                   </button>
                   <span className="w-10 text-center font-black text-lg">{qty}</span>
                   <button
+                    title='Increase Quantity'
                     onClick={() => setQty(q => Math.min(maxQty, q + 1))}
                     className="h-9 w-9 rounded-xl bg-card border border-border flex items-center justify-center hover:cursor-pointer hover:border-primary/50 transition-all active:scale-95 shadow-sm"
                   >
@@ -328,6 +333,7 @@ function ProductDetailContent() {
 
             {/* CTA */}
             <button
+              title='Add to Cart'
               onClick={handleAddToCart}
               disabled={outOfStock}
               className={`w-full h-14 rounded-2xl font-black text-base flex items-center justify-center gap-3 transition-all shadow-lg active:scale-[0.98] ${
@@ -346,6 +352,7 @@ function ProductDetailContent() {
             </button>
 
             <button
+              title='Back to products'
               onClick={() => router.back()}
               className="mt-4 flex items-center gap-2 text-sm text-muted-foreground cursor-pointer hover:text-foreground font-bold transition-colors mx-auto"
             >
@@ -407,26 +414,29 @@ function ProductDetailContent() {
                       <div className="flex gap-2">
                         {[1, 2, 3, 4, 5].map(s => (
                           <button 
+                            title={`Rate ${s} stars`}
                             key={s} 
                             type="button" 
                             onClick={() => setReviewForm({ ...reviewForm, rating: s })}
-                            className={`p-1 group transition-all ${reviewForm.rating >= s ? 'text-warning fill-warning' : 'text-muted-foreground/30 hover:text-warning'}`}
+                            className={`p-1 group transition-all cursor-pointer ${reviewForm.rating >= s ? 'text-warning fill-warning' : 'text-muted-foreground/30 hover:text-warning'}`}
                           >
                              <Star className={`h-6 w-6 ${reviewForm.rating >= s ? 'fill-current' : 'group-hover:fill-current'}`} />
                           </button>
                         ))}
                       </div>
                       <textarea 
+                        title='Type In Your Review'
                         required
                         placeholder="What did you like or dislike?"
                         className="w-full min-h-[100px] bg-card border border-border rounded-xl p-3 text-sm font-bold focus:ring-2 focus:ring-primary/20 focus:outline-none"
                         value={reviewForm.comment}
                         onChange={(e) => setReviewForm({ ...reviewForm, comment: e.target.value })}
                       />
-                      <button 
+                      <button
+                        title='Post Review'
                         type="submit" 
                         disabled={isSubmittingReview}
-                        className="w-full h-12 bg-primary text-primary-foreground rounded-xl font-black flex items-center justify-center gap-2 hover:bg-primary/90 shadow-lg shadow-primary/20 active:scale-95 transition-all"
+                        className="w-full h-12 bg-primary cursor-pointer text-primary-foreground rounded-xl font-black flex items-center justify-center gap-2 hover:bg-primary/90 shadow-lg shadow-primary/20 active:scale-95 transition-all"
                       >
                          {isSubmittingReview ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Send className="h-4 w-4" /> Post Review</>}
                       </button>
@@ -483,7 +493,7 @@ function ProductDetailContent() {
                 const g = getColor(p.id);
                 return (
                   <div key={p.id} className="bg-card rounded-2xl border border-border overflow-hidden group hover:border-primary/40 hover:shadow-lg transition-all duration-300 flex flex-col">
-                    <Link href={`/products/${p.id}`} className="block">
+                    <Link title='View Product' href={`/products/${p.id}`} className="block">
                       <div className={`aspect-square bg-linear-to-br ${g} flex items-center justify-center text-4xl font-black text-white/20 relative overflow-hidden`}>
                         {p.image_url ? (
                           <Image 
@@ -502,24 +512,24 @@ function ProductDetailContent() {
                           </div>
                         )}
                       </div>
-                    </Link>
-                    <div className="p-3 flex-1 flex flex-col">
-                      <p className="text-[9px] font-black text-primary uppercase tracking-wider mb-0.5">{p.category}</p>
-                      <Link href={`/products/${p.id}`}>
+                    
+                      <div className="p-3 flex-1 flex flex-col">
+                        <p className="text-[9px] font-black text-primary uppercase tracking-wider mb-0.5">{p.category}</p>
                         <h3 className="text-xs font-bold text-foreground line-clamp-2 flex-1 mb-2 hover:text-primary transition-colors">{p.name}</h3>
-                      </Link>
-                      <div className="flex items-center justify-between mt-auto pt-2 border-t border-border gap-1">
-                        <span className="text-base font-black">{useSettingsStore.getState().currencySymbol}{p.price.toFixed(2)}</span>
-                        <button
-                          onClick={() => handleRelatedAdd(p)}
-                          disabled={oos}
-                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-primary text-primary-foreground text-[10px] font-black hover:bg-primary/90 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm shadow-primary/20"
-                        >
-                          <Plus className="h-3 w-3" />
-                          <ShoppingCart className="h-3 w-3" />
-                        </button>
+                        <div className="flex items-center justify-between mt-auto pt-2 border-t border-border gap-1">
+                          <span className="text-base font-black">{useSettingsStore.getState().currencySymbol}{p.price.toFixed(2)}</span>
+                          <button
+                            title='Add to Cart'
+                            onClick={() => handleRelatedAdd(p)}
+                            disabled={oos}
+                            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-primary text-primary-foreground text-[10px] font-black cursor-pointer hover:bg-primary/90 hover:scale-110 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm shadow-primary/20"
+                          >
+                            <Plus className="h-3 w-3" />
+                            <ShoppingCart className="h-3 w-3" />
+                          </button>
+                        </div>
                       </div>
-                    </div>
+                    </Link>
                   </div>
                 );
               })}

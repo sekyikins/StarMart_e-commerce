@@ -30,7 +30,7 @@ export function ThemeToggle() {
   return (
     <button
       onClick={cycle}
-      title={`Theme: ${theme} — click to cycle`}
+      title={`Theme: ${theme} — Click to Cycle`}
       className="relative h-9 w-9 rounded-full flex items-center justify-center transition-all duration-200 bg-zinc-100 hover:bg-zinc-200 hover:cursor-pointer dark:bg-zinc-800 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:scale-105 active:scale-95"
     >
       {theme === 'system' ? (

@@ -93,6 +93,12 @@ export const useCartStore = create<CartState>((set, get) => ({
           };
         }
         return item;
+      }).filter(item => {
+        if (item.quantity <= 0) {
+          changed = true;
+          return false;
+        }
+        return true;
       });
       return changed ? { items: nextItems } : state;
     });

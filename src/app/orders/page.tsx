@@ -110,6 +110,7 @@ function OrderCard({ order, onUpdate }: { order: Order; onUpdate: () => void }) 
         </p>
         {isCancellable && (
           <button 
+            title='Cancel Order'
             onClick={handleCancel}
             disabled={cancelling}
             className="text-[10px] font-bold text-destructive hover:underline disabled:opacity-50 uppercase tracking-widest"
@@ -118,7 +119,7 @@ function OrderCard({ order, onUpdate }: { order: Order; onUpdate: () => void }) 
           </button>
         )}
         {order.status === 'DELIVERED' && !order.isReturned && (
-          <button 
+          <button
              onClick={() => setIsReturnModalOpen(true)}
              disabled={past7Days}
              className={`text-[10px] font-bold uppercase tracking-widest ${past7Days ? 'text-muted-foreground opacity-50 cursor-not-allowed' : 'text-primary hover:underline cursor-pointer'}`}
@@ -151,7 +152,7 @@ function OrderCard({ order, onUpdate }: { order: Order; onUpdate: () => void }) 
         <span>·</span>
         <span className="flex items-center gap-1 flex-1 truncate"><MapPin className="h-3 w-3" />{order.deliveryAddress || 'Pick-up Point'}</span>
         <span>·</span>
-        <span>{new Date(order.createdAt).toLocaleDateString(undefined, { month:'short', day:'numeric' })}</span>
+        <span>{new Date(order.createdAt).toLocaleDateString(undefined, { year:'numeric', month:'short', day:'numeric' })}</span>
       </div>
 
       <RequestReturnModal 

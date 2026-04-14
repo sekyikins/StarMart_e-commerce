@@ -83,6 +83,7 @@ function ProductsContent() {
               </div>
               <span className="h-6 w-px bg-border mx-1 hidden sm:block" />
               <select 
+                title='Sort by'
                 value={sortBy} 
                 onChange={e => setSortBy(e.target.value as typeof sortBy)} 
                 className="text-xs font-bold bg-card border border-border rounded-xl px-4 py-2 outline-none focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer shadow-sm hover:border-primary/50"
